@@ -75,9 +75,9 @@ export default function Dashboard() {
     );
   }
 
-  const recentCustomers = customers?.slice(0, 4) || [];
-  const activeProcesses = processes?.filter(p => p.status === "In Progress" || p.status === "Not Started").slice(0, 3) || [];
-  const recentActivity = timelineEvents?.slice(0, 4) || [];
+  const recentCustomers = (customers as any)?.slice(0, 4) || [];
+  const activeProcesses = (processes as any)?.filter((p: any) => p.status === "active" || p.status === "planning").slice(0, 3) || [];
+  const recentActivity = (timelineEvents as any)?.slice(0, 4) || [];
 
   const getCustomerInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -131,7 +131,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-neutral-600">Total Customers</p>
                 <p className="text-2xl font-semibold text-neutral-800 mt-1">
-                  {metrics?.totalCustomers || 0}
+                  {(metrics as any)?.totalCustomers || 0}
                 </p>
               </div>
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
