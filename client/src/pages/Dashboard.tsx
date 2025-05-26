@@ -21,21 +21,52 @@ import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
 
 export default function Dashboard() {
-  const { data: metrics } = useQuery({
+  const { data: metrics, isLoading: metricsLoading, error: metricsError } = useQuery({
     queryKey: ["/api/dashboard/metrics"],
   });
 
-  const { data: customers } = useQuery({
+  const { data: customers, isLoading: customersLoading, error: customersError } = useQuery({
     queryKey: ["/api/customers"],
   });
 
-  const { data: processes } = useQuery({
+  const { data: processes, isLoading: processesLoading, error: processesError } = useQuery({
     queryKey: ["/api/processes"],
   });
 
-  const { data: timelineEvents } = useQuery({
+  const { data: timelineEvents, isLoading: timelineLoading, error: timelineError } = useQuery({
     queryKey: ["/api/timeline"],
   });
+
+  // Show loading state
+  if (metricsLoading || customersLoading || processesLoading || timelineLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold text-neutral-800 mb-2">Dashboard Overview</h2>
+          <p className="text-neutral-600">Loading your dashboard...</p>
+        </div>
+        <div className="animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (metricsError || customersError || processesError || timelineError) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold text-neutral-800 mb-2">Dashboard Overview</h2>
+          <p className="text-red-600">Error loading dashboard data. Please refresh the page.</p>
+        </div>
+      </div>
+    );
+  }
 
   const recentCustomers = customers?.slice(0, 4) || [];
   const activeProcesses = processes?.filter(p => p.status === "In Progress" || p.status === "Not Started").slice(0, 3) || [];
