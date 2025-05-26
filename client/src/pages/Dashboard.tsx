@@ -21,6 +21,9 @@ import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
 
 export default function Dashboard() {
+  // Add simple test to see if component loads
+  console.log("Dashboard component is rendering");
+
   const { data: metrics, isLoading: metricsLoading, error: metricsError } = useQuery({
     queryKey: ["/api/dashboard/metrics"],
   });
@@ -36,6 +39,10 @@ export default function Dashboard() {
   const { data: timelineEvents, isLoading: timelineLoading, error: timelineError } = useQuery({
     queryKey: ["/api/timeline"],
   });
+
+  console.log("Dashboard data:", { metrics, customers, processes, timelineEvents });
+  console.log("Dashboard loading states:", { metricsLoading, customersLoading, processesLoading, timelineLoading });
+  console.log("Dashboard errors:", { metricsError, customersError, processesError, timelineError });
 
   // Show loading state
   if (metricsLoading || customersLoading || processesLoading || timelineLoading) {
