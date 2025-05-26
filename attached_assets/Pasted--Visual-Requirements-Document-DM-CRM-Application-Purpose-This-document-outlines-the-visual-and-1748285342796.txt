@@ -1,0 +1,457 @@
+# Visual Requirements Document: DM_CRM Application
+
+## Purpose
+This document outlines the visual and functional UI requirements for a Customer Relationship Management (CRM) application. Use this specification to propose a modern frontend solution that delivers excellent user experience while supporting complex business workflows. The backend services and data models are already defined - focus on creating intuitive, efficient, and visually appealing interfaces.
+
+## Application Overview
+Design a comprehensive CRM system that manages customer relationships, business processes, team coordination, and integrated AI assistance. The application serves business professionals who need to track customers, manage workflows, coordinate teams, and leverage AI insights for better decision-making.
+
+## User Story: Pharmaceutical Organization Management
+
+### Scenario: Adding PharmaCorp Inc. as a New Customer
+
+**Background:** You are a business development manager at a consulting firm that specializes in regulatory compliance, quality assurance, and digital transformation services for pharmaceutical companies. PharmaCorp Inc., a mid-sized pharmaceutical company, has approached your firm for help with FDA compliance for their new drug approval process.
+
+**Step-by-Step User Journey:**
+
+#### 1. Initial Customer Entry
+**User Action:** Navigate to Customer Dashboard and click "Add New Customer"
+**System Response:** Display multi-step customer creation form
+
+**Form Fields to Complete:**
+- **Company Information:**
+  - Company Name: "PharmaCorp Inc." (required)
+  - Customer Phase: "New Activation" (enum: Contracting, New Activation, Steady State, Steady State + New Activation, Pending Termination, Terminated)
+  - Contract Start Date: "2025-01-15" (optional)
+  - Contract End Date: "2026-01-14" (optional)
+  - Company Logo: Upload option (optional)
+  - Avatar Color: Auto-generated or custom hex color for visual identification
+
+**Note:** The system currently captures core customer information focused on relationship management. Additional fields like industry, company size, revenue, address, and website are not part of the current data model but could be valuable future enhancements.
+
+#### 2. Adding Key Contacts
+**User Action:** In the Contacts section, add multiple contact persons:
+
+**Primary Contact - Chief Regulatory Officer:**
+- Name: "Dr. Michael Chen" (required)
+- Title: "Chief Regulatory Officer" (optional)
+- Email: "m.chen@pharmacorp.com" (required)
+- Phone: "+1 (617) 555-0124" (optional)
+- Role: "Primary Decision Maker" (optional)
+- Type: "Client" (enum: Client, Internal)
+
+**Secondary Contact - Quality Director:**
+- Name: "Jennifer Martinez" (required)
+- Title: "Director of Quality Assurance" (optional)
+- Email: "j.martinez@pharmacorp.com" (required)
+- Phone: "+1 (617) 555-0125" (optional)
+- Role: "Technical Lead" (optional)
+- Type: "Client" (enum: Client, Internal)
+
+**Note:** The contact system captures essential communication information. Fields like department and communication preferences are not currently stored but could be added as future enhancements.
+
+#### 3. Creating Business Processes
+**User Action:** Navigate to Process Dashboard and create new processes for PharmaCorp
+
+**Process 1: FDA Pre-Submission Meeting Preparation**
+- Process Name: "FDA Pre-Sub Meeting Prep - Drug XYZ-401" (required)
+- Customer: "PharmaCorp Inc." (auto-selected)
+- Jira Ticket: "JIRA-FDA-001" (optional)
+- Status: "Not Started" (enum: Not Started, In Progress, Completed)
+- SDLC Stage: "Requirements" (enum: Requirements, Design, Development, Testing, Deployment, Maintenance)
+- Start Date: "2025-05-26" (required)
+- Due Date: "2025-07-07" (optional)
+- Approval Status: "Pending" (enum: Pending, Approved, Rejected, Not Required)
+- Estimate: 240 hours (optional)
+- Functional Area: "Custom Extract" (optional enum)
+- Responsible Contact: Link to existing contact (optional)
+
+**Process 2: Quality Management System Audit**
+- Process Name: "QMS Compliance Audit - Manufacturing Facility" (required)
+- Customer: "PharmaCorp Inc." (auto-selected)
+- Status: "Not Started"
+- SDLC Stage: "Requirements"
+- Start Date: "2025-06-09"
+- Due Date: "2025-07-07"
+- Approval Status: "Not Required"
+- Estimate: 160 hours
+
+**Note:** The current process model focuses on project management and SDLC tracking. Additional metadata like detailed process steps, specific team assignments within a process, and complex workflow management would require system enhancements.
+
+#### 4. Document Management
+**User Action:** Upload and organize customer documents
+
+**Document Upload Fields:**
+- Document Name: "PharmaCorp_Drug_XYZ401_IND_Application.pdf" (required)
+- Description: "Initial IND application for Drug XYZ-401" (optional)
+- Document Category: "Technical" (enum: Contract, Proposal, Requirements, Design, Technical, Report, Invoice, Other)
+- File Upload: Select and upload file (required)
+- Upload Date: Auto-populated with current date
+
+**Additional Documents:**
+- "Current_FDA_Correspondence.pdf" (Category: "Technical")
+- "QMS_Current_Procedures.pdf" (Category: "Technical")
+- "Service_Agreement_Draft.pdf" (Category: "Contract")
+
+**Note:** The document system stores metadata and file references. Advanced features like document versioning, approval workflows, and content search would require additional development.
+
+#### 5. Team and Service Management
+**User Action:** Create teams and assign services
+
+**Team Creation:**
+- Team Name: "Regulatory Compliance Team" (required)
+- Finance Code: "REG-2025-001" (required for billing/tracking)
+
+**Service Creation:**
+- Service Name: "FDA Regulatory Strategy & Consultation" (required)
+- Monthly Hours: 60 (required)
+
+**Additional Services:**
+- "Quality Management System Review" - 20 monthly hours
+- "Documentation Support" - 15 monthly hours
+
+**Note:** The current system tracks teams by finance codes and services by monthly hour allocations. Advanced features like team member assignments, skill tracking, service pricing, and resource utilization analytics would require system expansion.
+
+#### 6. AI Integration and Timeline Tracking
+**User Action:** Use AI Chat for insights and track customer interactions
+
+**AI Chat Features:**
+- Model Selection: Choose from available Ollama models
+- System Prompt: Customizable for regulatory compliance context
+- CRM Data Integration: AI can reference customer, process, and contact data
+- Chat History: Persistent conversations for ongoing support
+
+**Timeline Events (Auto-generated and Manual):**
+- Customer creation event
+- Process start/completion milestones
+- Contract date changes
+- Major communication logs
+- Document uploads
+
+**Current Tracking Capabilities:**
+- Process timeline events with SDLC stage transitions
+- Customer-level timeline events for major milestones
+- AI chat session history with searchable conversations
+
+**Note:** The system provides basic timeline tracking and AI integration. Advanced analytics, automated insights, and complex reporting would require additional development.
+
+#### 7. Ongoing Management and Tracking
+**Dashboard Views Available:**
+
+**Customer Dashboard Shows:**
+- Customer cards with name, phase, and avatar
+- Basic customer information and status
+- Quick access to customer details
+
+**Customer Detail View Displays:**
+- Customer information (name, phase, contract dates, logo)
+- Associated teams with finance codes
+- Services with monthly hour allocations
+- Processes with status, SDLC stages, and timelines
+- Contacts with communication details
+- Documents with upload dates and categories
+- Timeline events showing customer history
+
+**Process Management Features:**
+- Process cards showing name, status, dates, and SDLC stage
+- Process timeline events tracking stage transitions
+- Process detail views with full metadata
+- Link processes to responsible contacts
+
+**Current System Capabilities:**
+1. **Centralized Customer Data:** Core customer, contact, team, service, and process information
+2. **Process Tracking:** SDLC-based process management with timeline events
+3. **Document Storage:** File upload and categorization system
+4. **Team Organization:** Finance code-based team tracking
+5. **AI Integration:** Ollama-powered chat with CRM context
+6. **Basic Timeline:** Customer and process event tracking
+
+**System Limitations Requiring Future Development:**
+- Advanced project management and resource allocation
+- Financial/billing integration and reporting
+- Advanced analytics and business intelligence
+- Complex workflow automation
+- Detailed user permissions and role management
+- Integration with external systems (email, calendar, etc.)
+- Advanced search and filtering capabilities
+
+### Key Application Benefits Demonstrated:
+
+1. **Centralized Customer Information:** All customer data (contacts, documents, processes, teams, services) stored in one location
+2. **Process Management:** SDLC-based process tracking with timeline events and status monitoring
+3. **Team Organization:** Finance code-based team management for billing and resource tracking
+4. **Document Management:** Secure file storage with categorization and metadata
+5. **AI-Powered Support:** Integrated chat system with CRM data context for intelligent assistance
+6. **Timeline Tracking:** Automatic and manual event logging for customer and process history
+7. **Contact Management:** Client and internal contact organization with communication details
+8. **Service Tracking:** Monthly hour-based service allocation and monitoring
+
+**Important Notes:**
+- This user story reflects the **actual current capabilities** of the DM_CRM system based on the implemented data model
+- Many advanced CRM features mentioned in early sections would require additional development
+- The system is designed as a foundation that can be expanded with additional functionality as needed
+- Focus is on core relationship management, process tracking, and AI integration rather than comprehensive business management
+
+This user story demonstrates how the CRM system supports B2B consulting relationships with emphasis on process management, customer organization, and AI-assisted workflow support within the current technical constraints.
+
+## Core Visual Requirements
+
+### 1. Authentication & Access Control
+
+**Login Interface Requirements:**
+- Clean, professional login form with email/password fields
+- Modern card-based layout with subtle shadows and rounded corners
+- Clear visual feedback for loading states and validation errors
+- Option to toggle between "modern" and "retro terminal" themes via feature flag
+- Responsive design working on desktop, tablet, and mobile
+- Forgot password and registration links
+- Visual branding consistent with overall application theme
+
+**Security Considerations:**
+- Visual indicators for secure connections
+- Clear session timeout warnings
+- Role-based access indicators in the UI
+
+### 2. Main Dashboard & Navigation
+
+**Primary Dashboard Requirements:**
+- Comprehensive overview displaying key business metrics
+- Quick access cards for major functions (Customers, Processes, Teams, AI Chat)
+- Recent activity feed showing latest customer interactions and process updates
+- Visual indicators for urgent items requiring attention
+- Search functionality prominently displayed
+- Clean navigation structure with logical grouping
+
+**Navigation Structure:**
+- Top navigation bar with main sections: Dashboard, Customers, Processes, Teams, AI Chat, Admin
+- Sidebar or tabbed navigation for subsections within each main area
+- Breadcrumb navigation for deep navigation scenarios
+- Quick access to user profile and settings
+
+### 3. Customer Management Interface
+
+**Customer Dashboard:**
+- Grid/list toggle view of all customers with search and filtering
+- Customer cards showing: name, company, status, last contact, assigned team member
+- Visual status indicators (active, inactive, prospect, etc.) using color coding
+- Bulk action capabilities with clear selection UI
+- Sorting options by various criteria (name, last contact, status, etc.)
+- Quick action buttons for common tasks (call, email, add note)
+
+**Customer Detail View:**
+- Comprehensive single-customer view with tabbed sections:
+  - Overview: Basic info, status, assigned team, recent activity
+  - Contacts: List of all contact persons with roles and contact info
+  - Processes: Active and completed business processes
+  - Documents: File attachments with preview capabilities
+  - Notes: Timeline of interactions and notes
+  - AI Insights: AI-generated customer analysis and recommendations
+
+**Customer Forms:**
+- Multi-step form for new customer creation
+- Inline editing capabilities for existing customer data
+- Auto-save functionality with visual feedback
+- Validation with clear error messaging
+- File upload areas for documents and images
+- Contact person management with add/remove capabilities
+
+### 4. Process Management Interface
+
+**Process Dashboard:**
+- Kanban-style board showing processes by status (Planning, Active, Completed, etc.)
+- Process cards displaying: title, customer, assigned team, progress, due dates
+- Drag-and-drop functionality for status changes
+- Timeline view option showing processes chronologically
+- Filtering by customer, team, status, date ranges
+- Quick process creation button
+
+**Process Detail View:**
+- Detailed process information with:
+  - Process metadata (title, description, customer, team, dates)
+  - Step-by-step workflow with progress indicators
+  - Associated contacts and their roles
+  - Document repository for process-related files
+  - Communication log and notes
+  - Output tracking and delivery status
+
+**Process Creation/Editing:**
+- Wizard-style interface for complex process setup
+- Template selection for common process types
+- Team member assignment with role definitions
+- Milestone and deadline setting with calendar integration
+- File attachment capabilities
+
+### 5. Team Management Interface
+
+**Team Dashboard:**
+- Team overview cards showing: team name, members, active processes, performance metrics
+- Team member directory with roles, contact info, and current workload
+- Team performance analytics and charts
+- Quick team creation and member invitation features
+
+**Service Management:**
+- Service catalog with descriptions, pricing, and team assignments
+- Service performance metrics and customer satisfaction scores
+- Service package management and customization options
+
+### 6. AI Chat Interface
+
+**Chat Layout:**
+- Clean chat interface similar to modern messaging apps
+- Message bubbles with clear visual distinction between user and AI
+- Typing indicators and message status indicators
+- Message timestamp and read receipts
+
+**AI Configuration Panel:**
+- Model selection dropdown with descriptions of each AI model's capabilities
+- System prompt customization with real-time preview
+- CRM data context toggles (include customer data, process data, etc.)
+- Chat history management with search capabilities
+
+**CRM Integration:**
+- Contextual AI suggestions based on current customer/process being viewed
+- Quick actions to apply AI recommendations to CRM data
+- Visual highlighting when AI references specific CRM entities
+
+### 7. Document & Contact Management
+
+**Document Interface:**
+- File browser with grid and list views
+- Drag-and-drop upload zones
+- File preview capabilities for common formats
+- Document categorization and tagging system
+- Search functionality across document content
+- Version control with visual indicators
+
+**Contact Management:**
+- Contact directory with advanced search and filtering
+- Contact cards showing photo, role, company affiliation, and communication preferences
+- Quick communication actions (email, phone, message)
+- Contact relationship mapping and visualization
+
+### 8. Administrative Interfaces
+
+**Database Administration:**
+- Visual data browser with table views
+- Query builder interface for non-technical users
+- Data export/import wizards with progress indicators
+- System health monitoring dashboards
+- User management with role assignment interfaces
+
+**Settings & Configuration:**
+- User profile management with photo upload
+- System preferences and customization options
+- Theme switching (modern vs. retro) with live preview
+- Notification preferences and communication settings
+
+## Visual Design Requirements
+
+### Color Scheme & Branding
+- Primary color palette: Teal (#00b8a9) and Coral (#f8615a)
+- Professional, modern aesthetic suitable for business environments
+- Sufficient contrast ratios for accessibility compliance
+- Consistent color usage for status indicators and actions
+
+### Typography System
+- Headers: Clean, sans-serif font (suggest Poppins or similar)
+- Body text: Readable font optimized for screens (suggest Inter or similar)
+- Consistent hierarchy with clear visual distinction between heading levels
+- Adequate line spacing and font sizes for readability
+
+### Component Design
+- Card-based layouts with subtle shadows and rounded corners
+- Consistent spacing and padding throughout the interface
+- Modern button styles with hover and focus states
+- Form inputs with clear labels and validation feedback
+- Loading states and skeleton screens for better perceived performance
+
+### Responsive Design
+- Mobile-first approach with breakpoints for tablet and desktop
+- Touch-friendly interfaces for mobile users
+- Adaptive layouts that work well across different screen sizes
+- Consistent functionality across all device types
+
+## User Experience Requirements
+
+### Workflow Efficiency
+- Minimize clicks required for common tasks
+- Provide keyboard shortcuts for power users
+- Quick search functionality accessible from anywhere
+- Contextual actions based on current view/selection
+
+### Visual Feedback
+- Clear loading states for all asynchronous operations
+- Success/error messaging with appropriate visual styling
+- Progress indicators for multi-step processes
+- Visual confirmation for destructive actions
+
+### Data Visualization
+- Charts and graphs for business metrics and analytics
+- Visual progress indicators for processes and tasks
+- Status indicators using intuitive color coding
+- Timeline visualizations for customer interactions and process history
+
+### Accessibility
+- WCAG 2.1 AA compliance for accessibility
+- Keyboard navigation support
+- Screen reader compatibility
+- High contrast options for visually impaired users
+
+## Special Features
+
+### Dual Theme Support
+- Feature flag system allowing users to switch between:
+  - Modern professional interface (primary)
+  - Retro terminal-style interface (legacy support)
+- Theme switching should be seamless and preserve user data/state
+
+### Advanced Search & Filtering
+- Global search across all entities (customers, processes, contacts, documents)
+- Advanced filtering with multiple criteria
+- Saved search presets for common queries
+- Real-time search suggestions and auto-complete
+
+### Notification System
+- In-app notifications for important events
+- Visual indicators for unread notifications
+- Notification preferences and customization
+- Integration with external notification systems (email, SMS)
+
+## Integration Points
+
+### Data Display Requirements
+- Real-time updates from backend services
+- Efficient data pagination for large datasets
+- Optimistic UI updates with rollback capabilities
+- Offline functionality for critical features
+
+### External Service Integration
+- File upload/download with progress indicators
+- Calendar integration for scheduling and deadlines
+- Email integration for communication tracking
+- AI service integration with streaming responses
+
+## Success Criteria
+
+The proposed frontend solution should:
+1. Provide intuitive navigation and efficient workflows for business professionals
+2. Display complex relational data in understandable, actionable formats
+3. Support both quick tasks and detailed analysis workflows
+4. Maintain high performance with large datasets
+5. Offer excellent mobile and desktop experiences
+6. Integrate seamlessly with existing backend services
+7. Support future extensibility and customization
+
+## Technical Considerations (Framework Agnostic)
+
+While this document is technology-agnostic, the solution should:
+- Support modern web standards and best practices
+- Provide excellent performance and scalability
+- Enable easy maintenance and future enhancements
+- Support internationalization if needed
+- Include comprehensive testing capabilities
+- Offer good developer experience for ongoing development
+
+---
+
+*Note: This document focuses on functional visual requirements. Technical implementation details, API specifications, and backend architecture are covered in the companion `Functional_Rebuild.md` document.*
