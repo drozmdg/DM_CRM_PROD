@@ -16,6 +16,8 @@ import Navigation from "@/components/Navigation";
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  console.log("Router - Auth state:", { isAuthenticated, isLoading });
+
   if (isLoading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-neutral-50">
@@ -27,22 +29,31 @@ function Router() {
     );
   }
 
-  return (
-    <Switch>
-      {!isAuthenticated ? (
+  if (!isAuthenticated) {
+    console.log("Router - Showing Landing page");
+    return (
+      <Switch>
         <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Navigation />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  console.log("Router - User authenticated, showing Dashboard");
+  return (
+    <div className="min-h-screen bg-neutral-50">
+      <Navigation />
+      <main className="pt-16">
+        <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/customers" component={Customers} />
           <Route path="/processes" component={Processes} />
           <Route path="/teams" component={Teams} />
           <Route path="/ai-chat" component={AIChat} />
-        </>
-      )}
-      <Route component={NotFound} />
-    </Switch>
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+    </div>
   );
 }
 
