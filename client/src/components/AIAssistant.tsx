@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, Send, User, X, Minimize2, Maximize2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ChatSession, ChatMessage, MessageSender } from "@shared/types";
 
 interface AIAssistantProps {
   isOpen: boolean;
@@ -21,17 +22,17 @@ export default function AIAssistant({
   isMinimized = false 
 }: AIAssistantProps) {
   const [messageInput, setMessageInput] = useState("");
-  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: sessions } = useQuery({
+  const { data: sessions = [] } = useQuery<ChatSession[]>({
     queryKey: ["/api/chat/sessions"],
     enabled: isOpen,
   });
 
-  const { data: messages } = useQuery({
+  const { data: messages = [] } = useQuery<ChatMessage[]>({
     queryKey: ["/api/chat/sessions", currentSessionId, "messages"],
     enabled: !!currentSessionId && isOpen,
   });
@@ -68,7 +69,7 @@ export default function AIAssistant({
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: async (data: { role: string; content: string }) => {
+    mutationFn: async (data: { sender: MessageSender; content: string }) => {
       const response = await apiRequest("POST", `/api/chat/sessions/${currentSessionId}/messages`, data);
       return response.json();
     },
@@ -92,7 +93,7 @@ export default function AIAssistant({
 
     // Send user message
     await sendMessageMutation.mutateAsync({
-      role: "user",
+      sender: "user",
       content: messageInput,
     });
 
@@ -108,7 +109,7 @@ export default function AIAssistant({
       const randomResponse = responses[Math.floor(Math.random() * responses.length)];
       
       await sendMessageMutation.mutateAsync({
-        role: "assistant",
+        sender: "ai",
         content: randomResponse,
       });
     }, 1000);
@@ -178,10 +179,10 @@ export default function AIAssistant({
                   <div
                     key={message.id}
                     className={`flex space-x-2 ${
-                      message.role === "user" ? "justify-end" : "justify-start"
+                      message.sender === "user" ? "justify-end" : "justify-start"
                     }`}
                   >
-                    {message.role === "assistant" && (
+                    {message.sender === "ai" && (
                       <div className="w-6 h-6 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                         <Bot className="text-accent" size={12} />
                       </div>
@@ -189,7 +190,7 @@ export default function AIAssistant({
                     
                     <div
                       className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
-                        message.role === "user"
+                        message.sender === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-neutral-100 text-neutral-800"
                       }`}
@@ -197,7 +198,7 @@ export default function AIAssistant({
                       {message.content}
                     </div>
 
-                    {message.role === "user" && (
+                    {message.sender === "user" && (
                       <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                         <User className="text-primary" size={12} />
                       </div>

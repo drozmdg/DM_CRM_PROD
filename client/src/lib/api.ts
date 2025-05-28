@@ -50,6 +50,28 @@ export const contactApi = {
   },
 };
 
+// Communication API functions
+export const communicationApi = {
+  getAll: async (contactId: number) => {
+    const response = await apiRequest("GET", `/api/communications?contactId=${contactId}`);
+    return response.json();
+  },
+  
+  create: async (data: any) => {
+    const response = await apiRequest("POST", "/api/communications", data);
+    return response.json();
+  },
+  
+  update: async (id: number, data: any) => {
+    const response = await apiRequest("PUT", `/api/communications/${id}`, data);
+    return response.json();
+  },
+  
+  delete: async (id: number) => {
+    await apiRequest("DELETE", `/api/communications/${id}`);
+  },
+};
+
 // Process API functions
 export const processApi = {
   getAll: async (customerId?: number) => {

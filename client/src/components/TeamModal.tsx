@@ -14,9 +14,10 @@ interface TeamModalProps {
   isOpen: boolean;
   onClose: () => void;
   team?: any;
+  customerId?: string;
 }
 
-export default function TeamModal({ isOpen, onClose, team }: TeamModalProps) {
+export default function TeamModal({ isOpen, onClose, team, customerId }: TeamModalProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -44,13 +45,18 @@ export default function TeamModal({ isOpen, onClose, team }: TeamModalProps) {
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
+      const submitData = customerId ? { ...data, customerId } : data;
       const url = team ? `/api/teams/${team.id}` : "/api/teams";
       const method = team ? "PUT" : "POST";
-      const response = await apiRequest(method, url, data);
+      const response = await apiRequest(method, url, submitData);
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+      if (customerId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/teams", { customerId }] });
+        queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/metrics"] });
       toast({
         title: "Success",

@@ -67,6 +67,7 @@ export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   financeCode: text("finance_code").notNull(),
+  customerId: integer("customer_id").references(() => customers.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -142,6 +143,17 @@ export const aiChatMessages = pgTable("ai_chat_messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Communications table
+export const communications = pgTable("communications", {
+  id: serial("id").primaryKey(),
+  contactId: integer("contact_id").references(() => contacts.id).notNull(),
+  type: text("type").notNull(), // email, phone, meeting, other
+  subject: text("subject").notNull(),
+  notes: text("notes").notNull(),
+  date: text("date").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const customersRelations = relations(customers, ({ many }) => ({
   contacts: many(contacts),
@@ -157,6 +169,7 @@ export const contactsRelations = relations(contacts, ({ one, many }) => ({
     references: [customers.id],
   }),
   responsibleProcesses: many(processes),
+  communications: many(communications),
 }));
 
 export const servicesRelations = relations(services, ({ one }) => ({
@@ -211,6 +224,13 @@ export const aiChatMessagesRelations = relations(aiChatMessages, ({ one }) => ({
   }),
 }));
 
+export const communicationsRelations = relations(communications, ({ one }) => ({
+  contact: one(contacts, {
+    fields: [communications.contactId],
+    references: [contacts.id],
+  }),
+}));
+
 // Insert schemas
 export const insertCustomerSchema = createInsertSchema(customers).omit({
   id: true,
@@ -259,6 +279,11 @@ export const insertAiChatMessageSchema = createInsertSchema(aiChatMessages).omit
   createdAt: true,
 });
 
+export const insertCommunicationSchema = createInsertSchema(communications).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -280,3 +305,5 @@ export type AiChatSession = typeof aiChatSessions.$inferSelect;
 export type InsertAiChatSession = z.infer<typeof insertAiChatSessionSchema>;
 export type AiChatMessage = typeof aiChatMessages.$inferSelect;
 export type InsertAiChatMessage = z.infer<typeof insertAiChatMessageSchema>;
+export type Communication = typeof communications.$inferSelect;
+export type InsertCommunication = z.infer<typeof insertCommunicationSchema>;

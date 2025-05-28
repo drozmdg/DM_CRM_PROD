@@ -22,7 +22,7 @@ export default function Landing() {
             </p>
             
             <Button 
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => window.location.href = '/api/auth/login'}
               className="w-full bg-primary hover:bg-primary-600"
             >
               Sign In to Continue

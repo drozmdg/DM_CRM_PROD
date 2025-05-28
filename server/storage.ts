@@ -9,6 +9,7 @@ import {
   timelineEvents,
   aiChatSessions,
   aiChatMessages,
+  communications,
   type User,
   type UpsertUser,
   type Customer,
@@ -29,6 +30,8 @@ import {
   type InsertAiChatSession,
   type AiChatMessage,
   type InsertAiChatMessage,
+  type Communication,
+  type InsertCommunication,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, like, count } from "drizzle-orm";
@@ -51,9 +54,8 @@ export interface IStorage {
   createContact(contact: InsertContact): Promise<Contact>;
   updateContact(id: number, contact: Partial<InsertContact>): Promise<Contact>;
   deleteContact(id: number): Promise<void>;
-
   // Team operations
-  getTeams(): Promise<Team[]>;
+  getTeams(customerId?: string): Promise<Team[]>;
   getTeam(id: number): Promise<Team | undefined>;
   createTeam(team: InsertTeam): Promise<Team>;
   updateTeam(id: number, team: Partial<InsertTeam>): Promise<Team>;
@@ -83,13 +85,19 @@ export interface IStorage {
   // Timeline event operations
   getTimelineEvents(customerId?: number, processId?: number): Promise<TimelineEvent[]>;
   createTimelineEvent(event: InsertTimelineEvent): Promise<TimelineEvent>;
-
   // AI Chat operations
   getChatSessions(userId: string): Promise<AiChatSession[]>;
   getChatSession(id: number): Promise<AiChatSession | undefined>;
   createChatSession(session: InsertAiChatSession): Promise<AiChatSession>;
   getChatMessages(sessionId: number): Promise<AiChatMessage[]>;
   createChatMessage(message: InsertAiChatMessage): Promise<AiChatMessage>;
+
+  // Communication operations
+  getCommunications(contactId: number): Promise<Communication[]>;
+  getCommunication(id: number): Promise<Communication | undefined>;
+  createCommunication(communication: InsertCommunication): Promise<Communication>;
+  updateCommunication(id: number, communication: Partial<InsertCommunication>): Promise<Communication>;
+  deleteCommunication(id: number): Promise<void>;
 
   // Dashboard metrics
   getDashboardMetrics(): Promise<{
@@ -198,10 +206,19 @@ export class DatabaseStorage implements IStorage {
   async deleteContact(id: number): Promise<void> {
     await db.delete(contacts).where(eq(contacts.id, id));
   }
-
   // Team operations
-  async getTeams(): Promise<Team[]> {
-    return await db.select().from(teams).orderBy(desc(teams.createdAt));
+  async getTeams(customerId?: string): Promise<Team[]> {
+    console.log("Storage.getTeams called with customerId:", customerId);
+    if (customerId) {
+      console.log("Filtering teams by customerId:", customerId);
+      const filteredTeams = await db.select().from(teams).where(eq(teams.customerId, parseInt(customerId))).orderBy(desc(teams.createdAt));
+      console.log("Filtered teams result:", filteredTeams.length, "teams");
+      return filteredTeams;
+    }
+    console.log("Getting all teams (no filter)");
+    const allTeams = await db.select().from(teams).orderBy(desc(teams.createdAt));
+    console.log("All teams result:", allTeams.length, "teams");
+    return allTeams;
   }
 
   async getTeam(id: number): Promise<Team | undefined> {
@@ -381,10 +398,39 @@ export class DatabaseStorage implements IStorage {
       .where(eq(aiChatMessages.sessionId, sessionId))
       .orderBy(aiChatMessages.createdAt);
   }
-
   async createChatMessage(message: InsertAiChatMessage): Promise<AiChatMessage> {
     const [newMessage] = await db.insert(aiChatMessages).values(message).returning();
     return newMessage;
+  }
+
+  // Communication operations
+  async getCommunications(contactId: number): Promise<Communication[]> {
+    return await db.select().from(communications)
+      .where(eq(communications.contactId, contactId))
+      .orderBy(desc(communications.createdAt));
+  }
+
+  async getCommunication(id: number): Promise<Communication | undefined> {
+    const [communication] = await db.select().from(communications).where(eq(communications.id, id));
+    return communication;
+  }
+
+  async createCommunication(communication: InsertCommunication): Promise<Communication> {
+    const [newCommunication] = await db.insert(communications).values(communication).returning();
+    return newCommunication;
+  }
+
+  async updateCommunication(id: number, communication: Partial<InsertCommunication>): Promise<Communication> {
+    const [updatedCommunication] = await db
+      .update(communications)
+      .set(communication)
+      .where(eq(communications.id, id))
+      .returning();
+    return updatedCommunication;
+  }
+
+  async deleteCommunication(id: number): Promise<void> {
+    await db.delete(communications).where(eq(communications.id, id));
   }
 
   // Dashboard metrics

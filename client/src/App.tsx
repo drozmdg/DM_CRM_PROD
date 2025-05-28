@@ -4,11 +4,16 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { ChatProvider } from "@/contexts/ChatContext";
+import ChatDataProvider from "@/components/ChatDataProvider";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import Customers from "@/pages/Customers";
+import Contacts from "@/pages/Contacts";
 import Processes from "@/pages/Processes";
-import Teams from "@/pages/Teams";
+import Services from "@/pages/Services";
+import Documents from "@/pages/Documents";
+import Timeline from "@/pages/Timeline";
 import AIChat from "@/pages/AIChat";
 import NotFound from "@/pages/not-found";
 import Navigation from "@/components/Navigation";
@@ -41,19 +46,26 @@ function Router() {
 
   console.log("Router - User authenticated, showing Dashboard");
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Navigation />
-      <main className="pt-16">
-        <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/customers" component={Customers} />
-          <Route path="/processes" component={Processes} />
-          <Route path="/teams" component={Teams} />
-          <Route path="/ai-chat" component={AIChat} />
-          <Route component={NotFound} />
-        </Switch>
-      </main>
-    </div>
+    <ChatProvider>
+      <ChatDataProvider>
+        <div className="min-h-screen bg-neutral-50">
+          <Navigation />
+          <main className="pt-16">
+            <Switch>
+              <Route path="/" component={Dashboard} />
+              <Route path="/customers" component={Customers} />
+              <Route path="/contacts" component={Contacts} />
+              <Route path="/processes" component={Processes} />
+              <Route path="/services" component={Services} />
+              <Route path="/documents" component={Documents} />
+              <Route path="/timeline" component={Timeline} />
+              <Route path="/ai-chat" component={AIChat} />
+              <Route component={NotFound} />
+            </Switch>
+          </main>
+        </div>
+      </ChatDataProvider>
+    </ChatProvider>
   );
 }
 

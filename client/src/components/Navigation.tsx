@@ -10,9 +10,12 @@ import {
   LayoutDashboard, 
   Users, 
   Settings, 
-  UserPlus, 
   MessageSquare,
-  LogOut
+  LogOut,
+  Wrench,
+  FileText,
+  Clock,
+  UserCheck
 } from "lucide-react";
 
 export default function Navigation() {
@@ -22,8 +25,11 @@ export default function Navigation() {
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/customers", label: "Customers", icon: Users },
+    { href: "/contacts", label: "Contacts", icon: UserCheck },
     { href: "/processes", label: "Processes", icon: Settings },
-    { href: "/teams", label: "Teams", icon: UserPlus },
+    { href: "/services", label: "Services", icon: Wrench },
+    { href: "/documents", label: "Documents", icon: FileText },
+    { href: "/timeline", label: "Timeline", icon: Clock },
     { href: "/ai-chat", label: "AI Chat", icon: MessageSquare },
   ];
 
