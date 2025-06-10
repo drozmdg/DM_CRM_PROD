@@ -1,4 +1,4 @@
-# DM_CRM2 - Sales Dashboard & Customer Relationship Management System
+# DM_CRM - Sales Dashboard & Customer Relationship Management System
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.0.1-green.svg)
