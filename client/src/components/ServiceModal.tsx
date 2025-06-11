@@ -10,8 +10,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { customerApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { insertServiceSchema } from "@shared/schema";
+import { z } from "zod";
 import { Service } from "@shared/types";
+
+// Client-side service schema that matches the actual API expectations
+const serviceFormSchema = z.object({
+  name: z.string().min(1, "Service name is required"),
+  monthlyHours: z.number().min(0, "Monthly hours must be non-negative"),
+  customerId: z.string().min(1, "Customer is required"),
+});
 
 interface ServiceModalProps {
   isOpen: boolean;
@@ -30,7 +37,7 @@ export default function ServiceModal({ isOpen, onClose, service }: ServiceModalP
   });
 
   const form = useForm({
-    resolver: zodResolver(insertServiceSchema),
+    resolver: zodResolver(serviceFormSchema),
     defaultValues: {
       name: "",
       monthlyHours: 0,
@@ -107,10 +114,9 @@ export default function ServiceModal({ isOpen, onClose, service }: ServiceModalP
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a customer" />
-              </SelectTrigger>
-              <SelectContent>
+              </SelectTrigger>              <SelectContent>
                 {customers.map((customer: any) => (
-                  <SelectItem key={customer.id} value={customer.id}>
+                  <SelectItem key={customer.id} value={String(customer.id)}>
                     {customer.name}
                   </SelectItem>
                 ))}

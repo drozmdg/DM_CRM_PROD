@@ -2,36 +2,26 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
-import { Search, Plus, Eye, Edit, Trash2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Search, Plus, Download } from "lucide-react";
 import CustomerModal from "@/components/CustomerModal";
+import CustomerCardGrid from "@/components/CustomerCardGrid";
+import { customerApi } from "@/lib/api";
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [includeInactive, setIncludeInactive] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: customers, isLoading } = useQuery({
-    queryKey: ["/api/customers"],
+    queryKey: ["customers", includeInactive],
+    queryFn: () => customerApi.getAll(includeInactive),
   });
 
-  const getCustomerInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-
-  const getPhaseColor = (phase: string) => {
-    switch (phase) {
-      case "New Activation": return "bg-success/10 text-success";
-      case "Steady State": return "bg-primary/10 text-primary";
-      case "Contracting": return "bg-warning/10 text-warning";
-      case "Pending Termination": return "bg-destructive/10 text-destructive";
-      case "Terminated": return "bg-muted text-muted-foreground";
-      default: return "bg-muted text-muted-foreground";
-    }
-  };
-
-  const filteredCustomers = customers?.filter(customer =>
+  const filteredCustomers = (customers as any[])?.filter((customer: any) =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.phase.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
@@ -40,17 +30,101 @@ export default function Customers() {
     setSelectedCustomer(customer);
     setIsModalOpen(true);
   };
+  const handleEditCustomer = (customer: any) => {
+    setSelectedCustomer(customer);
+    setIsModalOpen(true);
+  };  const handleReactivateCustomer = async (customer: any) => {
+    try {
+      await customerApi.reactivate(customer.id);
+      // Invalidate and refetch customer queries
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    } catch (error) {
+      console.error('Failed to reactivate customer:', error);
+    }
+  };
+  const handleDeactivateCustomer = async (customer: any) => {
+    try {
+      const confirmed = window.confirm(
+        `Are you sure you want to deactivate "${customer.name}"?\n\nThis will mark the customer as inactive but keep all their data. You can reactivate them later if needed.`
+      );
+      
+      if (confirmed) {
+        await customerApi.delete(customer.id);
+        // Invalidate and refetch customer queries
+        queryClient.invalidateQueries({ queryKey: ["customers"] });
+      }
+    } catch (error) {
+      console.error('Failed to deactivate customer:', error);
+      alert('Failed to deactivate customer. Please try again.');
+    }
+  };
 
-  if (isLoading) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-neutral-600">Loading customers...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleExportCustomers = () => {
+    try {
+      // Create CSV content
+      const csvHeaders = [
+        'Customer ID',
+        'Customer Name', 
+        'Phase',
+        'Contract Start Date',
+        'Contract End Date',
+        'Active Status',
+        'Created Date',
+        'Updated Date',
+        'Total Teams',
+        'Total Contacts',
+        'Total Documents',
+        'Total Services',
+        'Total Monthly Hours',
+        'Total Processes',
+        'Timeline Events'
+      ];
+
+      const csvRows = filteredCustomers.map((customer: any) => [
+        customer.id || '',
+        customer.name || '',
+        customer.phase || '',
+        customer.contractStartDate || '',
+        customer.contractEndDate || '',
+        customer.active ? 'Active' : 'Inactive',
+        customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : '',
+        customer.updatedAt ? new Date(customer.updatedAt).toLocaleDateString() : '',
+        customer.teams?.length || 0,
+        customer.contacts?.length || 0,
+        customer.documents?.length || 0,
+        customer.services?.length || 0,
+        customer.services?.reduce((sum: number, service: any) => sum + (service.monthlyHours || 0), 0) || 0,
+        customer.processes?.length || 0,
+        customer.timeline?.length || 0
+      ]);
+
+      // Convert to CSV format
+      const csvContent = [
+        csvHeaders.join(','),
+        ...csvRows.map(row => 
+          row.map(field => 
+            typeof field === 'string' && field.includes(',') 
+              ? `"${field.replace(/"/g, '""')}"` 
+              : field
+          ).join(',')
+        )
+      ].join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `customers_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Export failed. Please try again.');
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
@@ -70,9 +144,7 @@ export default function Customers() {
           <Plus className="mr-2" size={16} />
           Add Customer
         </Button>
-      </div>
-
-      {/* Search and Filters */}
+      </div>      {/* Search and Filters */}
       <Card className="mb-6">
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
@@ -85,102 +157,36 @@ export default function Customers() {
                 className="pl-10"
               />
             </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="include-inactive"
+                checked={includeInactive}
+                onCheckedChange={setIncludeInactive}
+              />
+              <label htmlFor="include-inactive" className="text-sm font-medium">
+                Show inactive
+              </label>            </div>
             <Button variant="outline">Filter</Button>
             <Button variant="outline">Sort</Button>
+            <Button 
+              variant="outline" 
+              onClick={handleExportCustomers}
+              className="flex items-center gap-2"
+            >
+              <Download size={16} />
+              Export
+            </Button>
           </div>
         </CardContent>
-      </Card>
-
-      {/* Customer Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCustomers.map((customer) => (
-          <Card key={customer.id} className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4 mb-4">
-                <div 
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-semibold"
-                  style={{ backgroundColor: customer.avatarColor }}
-                >
-                  {getCustomerInitials(customer.name)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-neutral-800 truncate">{customer.name}</h3>
-                  <Badge variant="outline" className={getPhaseColor(customer.phase)}>
-                    {customer.phase}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                {customer.contractStartDate && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-600">Contract Start:</span>
-                    <span className="text-neutral-800">
-                      {new Date(customer.contractStartDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
-                {customer.contractEndDate && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-600">Contract End:</span>
-                    <span className="text-neutral-800">
-                      {new Date(customer.contractEndDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-neutral-200">
-                <div className="flex items-center space-x-1">
-                  <span className="w-2 h-2 bg-success rounded-full"></span>
-                  <span className="text-xs text-neutral-600">Active</span>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleViewCustomer(customer)}
-                  >
-                    <Eye size={14} />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleViewCustomer(customer)}
-                  >
-                    <Edit size={14} />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredCustomers.length === 0 && (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <h3 className="text-lg font-medium text-neutral-800 mb-2">No customers found</h3>
-            <p className="text-neutral-600 mb-4">
-              {searchTerm ? "Try adjusting your search terms" : "Get started by adding your first customer"}
-            </p>
-            <Button 
-              className="bg-primary hover:bg-primary/90"
-              onClick={() => {
-                setSelectedCustomer(null);
-                setIsModalOpen(true);
-              }}
-            >
-              <Plus className="mr-2" size={16} />
-              Add Customer
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      </Card>      {/* Enhanced Customer Grid */}
+      <CustomerCardGrid 
+        customers={filteredCustomers}
+        isLoading={isLoading}
+        onViewCustomer={handleViewCustomer}
+        onEditCustomer={handleEditCustomer}
+        onReactivateCustomer={handleReactivateCustomer}
+        onDeactivateCustomer={handleDeactivateCustomer}
+      />
 
       <CustomerModal
         isOpen={isModalOpen}

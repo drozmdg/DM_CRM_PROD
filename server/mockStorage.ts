@@ -796,11 +796,19 @@ export class MockStorage implements IStorage {
     this.aiChatMessages.push(message);
     return message;
   }
-
   // Communication operations
-  async getCommunications(contactId: number): Promise<Communication[]> {
+  async getCommunications(contactId: string): Promise<Communication[]> {
+    // Handle both string UUIDs and numeric contact IDs
+    const contactIdNum = parseInt(contactId, 10);
+    if (isNaN(contactIdNum)) {
+      // If it's not a number (like UUID), filter by exact string match
+      return this.communications
+        .filter(c => String(c.contactId) === contactId)
+        .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    }
+    // If it's a number, filter by numeric match
     return this.communications
-      .filter(c => c.contactId === contactId)
+      .filter(c => c.contactId === contactIdNum)
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 

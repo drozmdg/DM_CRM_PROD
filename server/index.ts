@@ -2,10 +2,37 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { storage } from "./storage_new.js";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Debug middleware to log request bodies
+app.use('/api/documents', (req, res, next) => {
+  console.log('Document API request:');
+  console.log('Method:', req.method);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  console.log('Body type:', typeof req.body);
+  console.log('Body keys:', Object.keys(req.body || {}));
+  next();
+});
+
+// Debug middleware specifically for process-timeline
+app.use('/api/process-timeline', (req, res, next) => {
+  console.log('🔍 PROCESS-TIMELINE DEBUG MIDDLEWARE:');
+  console.log('Method:', req.method);
+  console.log('Content-Type:', req.headers['content-type']);
+  console.log('Content-Length:', req.headers['content-length']);
+  console.log('Raw body available:', !!req.body);
+  console.log('Body:', req.body);
+  console.log('Body type:', typeof req.body);
+  console.log('Body keys:', Object.keys(req.body || {}));
+  console.log('Body JSON string:', JSON.stringify(req.body));
+  console.log('🔍 END DEBUG MIDDLEWARE');
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -38,6 +65,11 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize storage service to connect to Supabase database
+  log('Initializing storage service...');
+  await storage.initialize();
+  log('Storage service initialized successfully');
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -63,8 +95,7 @@ app.use((req, res, next) => {
   const port = parseInt(process.env.PORT || "5000");
   server.listen({
     port,
-    host: "0.0.0.0",
-    reusePort: true,
+    host: "0.0.0.0"
   }, () => {
     log(`serving on port ${port}`);
   });

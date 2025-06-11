@@ -38,21 +38,23 @@ export const users = pgTable("users", {
 
 // Customers table
 export const customers = pgTable("customers", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(),
   name: text("name").notNull(),
   phase: text("phase").notNull(), // Contracting, New Activation, Steady State, etc.
   contractStartDate: date("contract_start_date"),
   contractEndDate: date("contract_end_date"),
   logoUrl: text("logo_url"),
   avatarColor: text("avatar_color").notNull().default("#1976D2"),
+  active: boolean("active").notNull().default(true), // Soft delete flag
+  inactivatedAt: timestamp("inactivated_at"), // When customer was inactivated
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Contacts table
 export const contacts = pgTable("contacts", {
-  id: serial("id").primaryKey(),
-  customerId: integer("customer_id").references(() => customers.id).notNull(),
+  id: text("id").primaryKey(),
+  customerId: text("customer_id").references(() => customers.id).notNull(),
   name: text("name").notNull(),
   title: text("title"),
   email: text("email").notNull(),
@@ -64,17 +66,17 @@ export const contacts = pgTable("contacts", {
 
 // Teams table
 export const teams = pgTable("teams", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(),
   name: text("name").notNull(),
   financeCode: text("finance_code").notNull(),
-  customerId: integer("customer_id").references(() => customers.id).notNull(),
+  customerId: text("customer_id").references(() => customers.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Services table
 export const services = pgTable("services", {
-  id: serial("id").primaryKey(),
-  customerId: integer("customer_id").references(() => customers.id).notNull(),
+  id: text("id").primaryKey(),
+  customerId: text("customer_id").references(() => customers.id).notNull(),
   name: text("name").notNull(),
   monthlyHours: integer("monthly_hours").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -82,9 +84,9 @@ export const services = pgTable("services", {
 
 // Processes table
 export const processes = pgTable("processes", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(),
   name: text("name").notNull(),
-  customerId: integer("customer_id").references(() => customers.id).notNull(),
+  customerId: text("customer_id").references(() => customers.id).notNull(),
   jiraTicket: text("jira_ticket"),
   status: text("status").notNull(), // Not Started, In Progress, Completed
   sdlcStage: text("sdlc_stage").notNull(), // Requirements, Design, Development, Testing, Deployment, Maintenance
@@ -93,7 +95,7 @@ export const processes = pgTable("processes", {
   approvalStatus: text("approval_status").notNull().default("Pending"), // Pending, Approved, Rejected, Not Required
   estimate: integer("estimate"), // hours
   functionalArea: text("functional_area"),
-  responsibleContactId: integer("responsible_contact_id").references(() => contacts.id),
+  responsibleContactId: text("responsible_contact_id").references(() => contacts.id),
   progress: integer("progress").default(0), // percentage 0-100
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -101,8 +103,8 @@ export const processes = pgTable("processes", {
 
 // Documents table
 export const documents = pgTable("documents", {
-  id: serial("id").primaryKey(),
-  customerId: integer("customer_id").references(() => customers.id).notNull(),
+  id: text("id").primaryKey(),
+  customerId: text("customer_id").references(() => customers.id).notNull(),
   name: text("name").notNull(),
   description: text("description"),
   category: text("category").notNull(), // Contract, Proposal, Requirements, Design, Technical, Report, Invoice, Other
@@ -114,9 +116,9 @@ export const documents = pgTable("documents", {
 
 // Timeline events table
 export const timelineEvents = pgTable("timeline_events", {
-  id: serial("id").primaryKey(),
-  customerId: integer("customer_id").references(() => customers.id),
-  processId: integer("process_id").references(() => processes.id),
+  id: text("id").primaryKey(),
+  customerId: text("customer_id").references(() => customers.id),
+  processId: text("process_id").references(() => processes.id),
   eventType: text("event_type").notNull(), // customer_created, process_started, document_uploaded, etc.
   title: text("title").notNull(),
   description: text("description"),
@@ -126,7 +128,7 @@ export const timelineEvents = pgTable("timeline_events", {
 
 // AI Chat sessions table
 export const aiChatSessions = pgTable("ai_chat_sessions", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
   title: text("title"),
   model: text("model").notNull().default("llama2"),
@@ -136,8 +138,8 @@ export const aiChatSessions = pgTable("ai_chat_sessions", {
 
 // AI Chat messages table
 export const aiChatMessages = pgTable("ai_chat_messages", {
-  id: serial("id").primaryKey(),
-  sessionId: integer("session_id").references(() => aiChatSessions.id).notNull(),
+  id: text("id").primaryKey(),
+  sessionId: text("session_id").references(() => aiChatSessions.id).notNull(),
   role: text("role").notNull(), // user, assistant
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -145,8 +147,8 @@ export const aiChatMessages = pgTable("ai_chat_messages", {
 
 // Communications table
 export const communications = pgTable("communications", {
-  id: serial("id").primaryKey(),
-  contactId: integer("contact_id").references(() => contacts.id).notNull(),
+  id: text("id").primaryKey(),
+  contactId: text("contact_id").references(() => contacts.id).notNull(),
   type: text("type").notNull(), // email, phone, meeting, other
   subject: text("subject").notNull(),
   notes: text("notes").notNull(),

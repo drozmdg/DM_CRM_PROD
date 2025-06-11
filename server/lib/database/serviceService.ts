@@ -208,7 +208,6 @@ export class ServiceService {
       };
     }
   }
-
   /**
    * Map database service to application service
    */
@@ -216,10 +215,10 @@ export class ServiceService {
     return {
       id: dbService.id,
       name: dbService.name,
-      monthlyHours: dbService.monthly_hours || 0
+      monthlyHours: dbService.monthly_hours || 0,
+      customerId: dbService.customer_id
     };
   }
-
   /**
    * Get mock services for graceful degradation
    */
@@ -228,17 +227,20 @@ export class ServiceService {
       {
         id: 'mock-service-1',
         name: 'Data Ingestion',
-        monthlyHours: 20
+        monthlyHours: 20,
+        customerId: customerId || 'mock-customer-1'
       },
       {
         id: 'mock-service-2',
         name: 'Report Generation',
-        monthlyHours: 15
+        monthlyHours: 15,
+        customerId: customerId || 'mock-customer-1'
       },
       {
         id: 'mock-service-3',
         name: 'Data Analysis',
-        monthlyHours: 30
+        monthlyHours: 30,
+        customerId: customerId || 'mock-customer-2'
       }
     ];
 

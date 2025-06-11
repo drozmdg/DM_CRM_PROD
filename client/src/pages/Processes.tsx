@@ -7,19 +7,33 @@ import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Plus, Eye, Edit, Calendar } from "lucide-react";
 import { format } from "date-fns";
+import { useLocation } from "wouter";
 import ProcessModal from "@/components/ProcessModal";
 
 export default function Processes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProcess, setSelectedProcess] = useState(null);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [, setLocation] = useLocation();
 
   const { data: processes, isLoading } = useQuery({
     queryKey: ["/api/processes"],
+    queryFn: async () => {
+      const response = await fetch("/api/processes", { credentials: "include" });
+      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+      return response.json();
+    },
   });
 
   const { data: customers } = useQuery({
     queryKey: ["/api/customers"],
+    queryFn: async () => {
+      const response = await fetch("/api/customers", { credentials: "include" });
+      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+      return response.json();
+    },
   });
 
   const getCustomerInitials = (name: string) => {
@@ -47,16 +61,61 @@ export default function Processes() {
     }
   };
 
-  const filteredProcesses = processes?.filter(process =>
+  const handleViewProcess = (process: any) => {
+    setLocation(`/processes/${process.id}`);
+  };
+
+  // Handler for table header clicks to toggle sorting
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // Toggle direction if same field is clicked
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new field and default to ascending
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Apply search filtering
+  let filteredProcesses = (processes as any)?.filter((process: any) =>
     process.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     process.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    process.sdlcStage.toLowerCase().includes(searchTerm.toLowerCase())
+    process.sdlcStage?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const handleViewProcess = (process: any) => {
-    setSelectedProcess(process);
-    setIsModalOpen(true);
-  };
+  // Apply sorting to filtered processes
+  if (sortField) {
+    filteredProcesses = [...filteredProcesses].sort((a: any, b: any) => {
+      let aValue = a[sortField];
+      let bValue = b[sortField];
+      
+      // Handle special cases for sorting
+      if (sortField === 'customerId') {
+        // Sort by customer name instead of ID
+        const aCustomer = customers?.find((c: any) => c.id === a.customerId);
+        const bCustomer = customers?.find((c: any) => c.id === b.customerId);
+        aValue = aCustomer?.name || '';
+        bValue = bCustomer?.name || '';
+      } else if (sortField === 'dueDate') {
+        // Convert dates for proper comparison
+        aValue = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+        bValue = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+      }
+      
+      // Compare values based on their types
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      } else {
+        // For numbers and dates
+        return sortDirection === 'asc'
+          ? (aValue || 0) - (bValue || 0)
+          : (bValue || 0) - (aValue || 0);
+      }
+    });
+  }
 
   if (isLoading) {
     return (
@@ -115,18 +174,90 @@ export default function Processes() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-neutral-200">
-                  <th className="text-left py-3 px-4 font-medium text-neutral-700">Process Name</th>
-                  <th className="text-left py-3 px-4 font-medium text-neutral-700">Customer</th>
-                  <th className="text-left py-3 px-4 font-medium text-neutral-700">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-neutral-700">SDLC Stage</th>
-                  <th className="text-left py-3 px-4 font-medium text-neutral-700">Due Date</th>
-                  <th className="text-left py-3 px-4 font-medium text-neutral-700">Progress</th>
+                  <th className="text-left py-3 px-4 font-medium text-neutral-700">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('name')}
+                    >
+                      Process Name
+                      {sortField === 'name' && (
+                        <span className={`ml-2 text-xs ${sortDirection === 'asc' ? 'text-primary' : 'text-danger'}`}>
+                          {sortDirection === 'asc' ? '▲' : '▼'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-neutral-700">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('customerId')}
+                    >
+                      Customer
+                      {sortField === 'customerId' && (
+                        <span className={`ml-2 text-xs ${sortDirection === 'asc' ? 'text-primary' : 'text-danger'}`}>
+                          {sortDirection === 'asc' ? '▲' : '▼'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-neutral-700">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status
+                      {sortField === 'status' && (
+                        <span className={`ml-2 text-xs ${sortDirection === 'asc' ? 'text-primary' : 'text-danger'}`}>
+                          {sortDirection === 'asc' ? '▲' : '▼'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-neutral-700">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('sdlcStage')}
+                    >
+                      SDLC Stage
+                      {sortField === 'sdlcStage' && (
+                        <span className={`ml-2 text-xs ${sortDirection === 'asc' ? 'text-primary' : 'text-danger'}`}>
+                          {sortDirection === 'asc' ? '▲' : '▼'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-neutral-700">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('dueDate')}
+                    >
+                      Due Date
+                      {sortField === 'dueDate' && (
+                        <span className={`ml-2 text-xs ${sortDirection === 'asc' ? 'text-primary' : 'text-danger'}`}>
+                          {sortDirection === 'asc' ? '▲' : '▼'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-neutral-700">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('progress')}
+                    >
+                      Progress
+                      {sortField === 'progress' && (
+                        <span className={`ml-2 text-xs ${sortDirection === 'asc' ? 'text-primary' : 'text-danger'}`}>
+                          {sortDirection === 'asc' ? '▲' : '▼'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
                   <th className="text-left py-3 px-4 font-medium text-neutral-700">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredProcesses.map((process) => {
-                  const customer = customers?.find(c => c.id === process.customerId);
+                {filteredProcesses.map((process: any) => {
+                  const customer = customers?.find((c: any) => c.id === process.customerId);
                   return (
                     <tr key={process.id} className="border-b border-neutral-100 hover:bg-neutral-50">
                       <td className="py-4 px-4">
@@ -184,7 +315,10 @@ export default function Processes() {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => handleViewProcess(process)}
+                            onClick={() => {
+                              setSelectedProcess(process);
+                              setIsModalOpen(true);
+                            }}
                           >
                             <Edit size={14} />
                           </Button>

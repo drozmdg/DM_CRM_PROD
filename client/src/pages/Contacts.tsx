@@ -43,12 +43,21 @@ export default function Contacts() {
       return response.json();
     },
   });
-
   // Fetch customers for filtering
   const { data: customers } = useQuery({
     queryKey: ["/api/customers"],
     queryFn: async () => {
       const response = await fetch("/api/customers", { credentials: "include" });
+      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+      return response.json();
+    },
+  });
+
+  // Fetch dashboard metrics for live customer count
+  const { data: metrics } = useQuery({
+    queryKey: ["/api/dashboard/metrics"],
+    queryFn: async () => {
+      const response = await fetch("/api/dashboard/metrics", { credentials: "include" });
       if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
       return response.json();
     },
@@ -226,15 +235,13 @@ export default function Contacts() {
               <User className="text-green-600" size={20} />
             </div>
           </CardContent>
-        </Card>
-
-        <Card>
+        </Card>        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-neutral-600">Active Customers</p>
                 <p className="text-2xl font-bold text-neutral-800">
-                  {new Set(contacts?.map((c: Contact) => c.customerId).filter(Boolean)).size}
+                  {(metrics as any)?.customers?.total || 0}
                 </p>
               </div>
               <Building className="text-purple-600" size={20} />

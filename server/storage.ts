@@ -39,21 +39,19 @@ import { eq, desc, and, or, like, count } from "drizzle-orm";
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
-
-  // Customer operations
-  getCustomers(): Promise<Customer[]>;
+  upsertUser(user: UpsertUser): Promise<User>;  // Customer operations
+  getCustomers(includeInactive?: boolean): Promise<Customer[]>;
   getCustomer(id: number): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer>;
   deleteCustomer(id: number): Promise<void>;
-
+  reactivateCustomer(id: number): Promise<Customer>;
   // Contact operations
   getContacts(customerId?: number): Promise<Contact[]>;
-  getContact(id: number): Promise<Contact | undefined>;
+  getContact(id: string): Promise<Contact | undefined>;
   createContact(contact: InsertContact): Promise<Contact>;
-  updateContact(id: number, contact: Partial<InsertContact>): Promise<Contact>;
-  deleteContact(id: number): Promise<void>;
+  updateContact(id: string, contact: Partial<InsertContact>): Promise<Contact>;
+  deleteContact(id: string): Promise<void>;
   // Team operations
   getTeams(customerId?: string): Promise<Team[]>;
   getTeam(id: number): Promise<Team | undefined>;
@@ -91,19 +89,17 @@ export interface IStorage {
   createChatSession(session: InsertAiChatSession): Promise<AiChatSession>;
   getChatMessages(sessionId: number): Promise<AiChatMessage[]>;
   createChatMessage(message: InsertAiChatMessage): Promise<AiChatMessage>;
-
   // Communication operations
-  getCommunications(contactId: number): Promise<Communication[]>;
+  getCommunications(contactId: string): Promise<Communication[]>;
   getCommunication(id: number): Promise<Communication | undefined>;
   createCommunication(communication: InsertCommunication): Promise<Communication>;
   updateCommunication(id: number, communication: Partial<InsertCommunication>): Promise<Communication>;
   deleteCommunication(id: number): Promise<void>;
-
   // Dashboard metrics
   getDashboardMetrics(): Promise<{
     totalCustomers: number;
     activeProcesses: number;
-    totalTeams: number;
+    totalServices: number;
     totalDocuments: number;
   }>;
 }
@@ -129,19 +125,26 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return user;
   }
-
   // Customer operations
-  async getCustomers(): Promise<Customer[]> {
-    return await db.select().from(customers).orderBy(desc(customers.createdAt));
+  async getCustomers(includeInactive: boolean = false): Promise<Customer[]> {
+    let query = db.select().from(customers);
+    
+    if (!includeInactive) {
+      query = query.where(eq(customers.active, true));
+    }
+    
+    return await query.orderBy(desc(customers.createdAt));
   }
 
   async getCustomer(id: number): Promise<Customer | undefined> {
     const [customer] = await db.select().from(customers).where(eq(customers.id, id));
     return customer;
   }
-
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
-    const [newCustomer] = await db.insert(customers).values(customer).returning();
+    const [newCustomer] = await db.insert(customers).values({
+      ...customer,
+      active: true
+    }).returning();
     
     // Create timeline event
     await this.createTimelineEvent({
@@ -162,9 +165,28 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedCustomer;
   }
-
   async deleteCustomer(id: number): Promise<void> {
-    await db.delete(customers).where(eq(customers.id, id));
+    await db
+      .update(customers)
+      .set({ 
+        active: false, 
+        inactivatedAt: new Date(),
+        updatedAt: new Date() 
+      })
+      .where(eq(customers.id, id));
+  }
+
+  async reactivateCustomer(id: number): Promise<Customer> {
+    const [reactivatedCustomer] = await db
+      .update(customers)
+      .set({ 
+        active: true, 
+        inactivatedAt: null,
+        updatedAt: new Date() 
+      })
+      .where(eq(customers.id, id))
+      .returning();
+    return reactivatedCustomer;
   }
 
   // Contact operations
@@ -174,9 +196,12 @@ export class DatabaseStorage implements IStorage {
     }
     return await db.select().from(contacts);
   }
-
-  async getContact(id: number): Promise<Contact | undefined> {
-    const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
+  async getContact(id: string): Promise<Contact | undefined> {
+    const contactIdNum = parseInt(id, 10);
+    if (isNaN(contactIdNum)) {
+      return undefined;
+    }
+    const [contact] = await db.select().from(contacts).where(eq(contacts.id, contactIdNum));
     return contact;
   }
 
@@ -193,18 +218,25 @@ export class DatabaseStorage implements IStorage {
     
     return newContact;
   }
-
-  async updateContact(id: number, contact: Partial<InsertContact>): Promise<Contact> {
+  async updateContact(id: string, contact: Partial<InsertContact>): Promise<Contact> {
+    const contactIdNum = parseInt(id, 10);
+    if (isNaN(contactIdNum)) {
+      throw new Error('Invalid contact ID');
+    }
     const [updatedContact] = await db
       .update(contacts)
       .set(contact)
-      .where(eq(contacts.id, id))
+      .where(eq(contacts.id, contactIdNum))
       .returning();
     return updatedContact;
   }
 
-  async deleteContact(id: number): Promise<void> {
-    await db.delete(contacts).where(eq(contacts.id, id));
+  async deleteContact(id: string): Promise<void> {
+    const contactIdNum = parseInt(id, 10);
+    if (isNaN(contactIdNum)) {
+      throw new Error('Invalid contact ID');
+    }
+    await db.delete(contacts).where(eq(contacts.id, contactIdNum));
   }
   // Team operations
   async getTeams(customerId?: string): Promise<Team[]> {
@@ -355,9 +387,8 @@ export class DatabaseStorage implements IStorage {
   async deleteDocument(id: number): Promise<void> {
     await db.delete(documents).where(eq(documents.id, id));
   }
-
   // Timeline event operations
-  async getTimelineEvents(customerId?: number, processId?: number): Promise<TimelineEvent[]> {
+  async getTimelineEvents(customerId?: string, processId?: string): Promise<TimelineEvent[]> {
     let query = db.select().from(timelineEvents);
     
     if (customerId && processId) {
@@ -400,13 +431,16 @@ export class DatabaseStorage implements IStorage {
   }
   async createChatMessage(message: InsertAiChatMessage): Promise<AiChatMessage> {
     const [newMessage] = await db.insert(aiChatMessages).values(message).returning();
-    return newMessage;
-  }
+    return newMessage;  }
 
   // Communication operations
-  async getCommunications(contactId: number): Promise<Communication[]> {
+  async getCommunications(contactId: string): Promise<Communication[]> {
+    const contactIdNum = parseInt(contactId, 10);
+    if (isNaN(contactIdNum)) {
+      return [];
+    }
     return await db.select().from(communications)
-      .where(eq(communications.contactId, contactId))
+      .where(eq(communications.contactId, contactIdNum))
       .orderBy(desc(communications.createdAt));
   }
 
@@ -432,24 +466,23 @@ export class DatabaseStorage implements IStorage {
   async deleteCommunication(id: number): Promise<void> {
     await db.delete(communications).where(eq(communications.id, id));
   }
-
   // Dashboard metrics
   async getDashboardMetrics(): Promise<{
     totalCustomers: number;
     activeProcesses: number;
-    totalTeams: number;
+    totalServices: number;
     totalDocuments: number;
   }> {
     const [customersCount] = await db.select({ count: count() }).from(customers);
     const [activeProcessesCount] = await db.select({ count: count() }).from(processes)
       .where(or(eq(processes.status, "In Progress"), eq(processes.status, "Not Started")));
-    const [teamsCount] = await db.select({ count: count() }).from(teams);
+    const [servicesCount] = await db.select({ count: count() }).from(services);
     const [documentsCount] = await db.select({ count: count() }).from(documents);
 
     return {
       totalCustomers: customersCount.count,
       activeProcesses: activeProcessesCount.count,
-      totalTeams: teamsCount.count,
+      totalServices: servicesCount.count,
       totalDocuments: documentsCount.count,
     };
   }

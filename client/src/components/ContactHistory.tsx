@@ -62,21 +62,19 @@ export default function ContactHistory({ isOpen, onClose, contact }: ContactHist
       notes: "",
       date: new Date().toISOString().split('T')[0],
     },
-  });
-  // Fetch communication history for the contact
+  });  // Fetch communication history for the contact
   const { data: communications = [], isLoading } = useQuery({
     queryKey: ["/api/communications", { contactId: contact?.id }],
     queryFn: async () => {
       if (!contact?.id) return [];
-      return communicationApi.getAll(parseInt(contact.id));
+      return communicationApi.getAll(contact.id);
     },
     enabled: !!contact?.id,
-  });
-  const mutation = useMutation({
+  });const mutation = useMutation({
     mutationFn: async (data: any) => {
       const communicationData = {
         ...data,
-        contactId: contact?.id,
+        contactId: String(contact?.id),
         date: new Date(data.date).toISOString(),
       };
       

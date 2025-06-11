@@ -26,6 +26,7 @@ export default function TeamModal({ isOpen, onClose, team, customerId }: TeamMod
     defaultValues: {
       name: "",
       financeCode: "",
+      customerId: customerId || "",
     },
   });
 
@@ -34,24 +35,25 @@ export default function TeamModal({ isOpen, onClose, team, customerId }: TeamMod
       form.reset({
         name: team.name || "",
         financeCode: team.financeCode || "",
+        customerId: customerId || "",
       });
     } else {
       form.reset({
         name: "",
         financeCode: "",
+        customerId: customerId || "",
       });
     }
-  }, [team, form]);
+  }, [team, form, customerId]);
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
-      const submitData = customerId ? { ...data, customerId } : data;
       const url = team ? `/api/teams/${team.id}` : "/api/teams";
       const method = team ? "PUT" : "POST";
-      const response = await apiRequest(method, url, submitData);
-      return response.json();
+      const response = await apiRequest(method, url, data);
+      return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
       if (customerId) {
         queryClient.invalidateQueries({ queryKey: ["/api/teams", { customerId }] });

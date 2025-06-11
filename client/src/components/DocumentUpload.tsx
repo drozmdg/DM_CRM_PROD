@@ -19,14 +19,16 @@ const documentFormSchema = z.object({
   name: z.string().min(1, "Document name is required"),
   description: z.string().optional(),
   category: z.string().min(1, "Category is required"),
-  customerId: z.number().min(1, "Customer is required"),
+  customerId: z.string().min(1, "Please select a customer"),
 });
 
 interface DocumentUploadProps {
   isOpen?: boolean;
   onClose?: () => void;
-  customerId?: number;
+  customerId?: string;
+  processId?: string;
   onUploadComplete?: () => void;
+  onSuccess?: () => void;
   standalone?: boolean;
 }
 
@@ -34,8 +36,10 @@ export default function DocumentUpload({
   isOpen = true, 
   onClose, 
   customerId, 
+  processId,
   onUploadComplete,
-  standalone = false 
+  onSuccess,
+  standalone 
 }: DocumentUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -54,7 +58,7 @@ export default function DocumentUpload({
       name: "",
       description: "",
       category: "Technical",
-      customerId: customerId || 0,
+      customerId: customerId || "",
     },
   });
 
@@ -74,13 +78,21 @@ export default function DocumentUpload({
 
       // In a real app, you would upload the file to a storage service
       const documentData = {
-        ...data,
-        fileUrl: `/uploads/${selectedFile?.name || "document.pdf"}`,
-        fileSize: selectedFile?.size || 0,
-        mimeType: selectedFile?.type || "application/pdf",
+        name: data.name,
+        description: data.description || "",
+        url: `http://localhost:5000/uploads/${selectedFile?.name || "document.pdf"}`,
+        type: selectedFile?.type || "application/pdf",
+        category: data.category,
+        size: selectedFile?.size || 0,
+        customerId: data.customerId,
       };
       
-      const response = await apiRequest("POST", "/api/documents", documentData);
+      // Choose the appropriate endpoint based on whether this is for a process
+      const endpoint = processId 
+        ? `/api/processes/${processId}/documents`
+        : "/api/documents";
+      
+      const response = await apiRequest("POST", endpoint, documentData);
       
       // Complete progress
       clearInterval(progressInterval);
@@ -91,6 +103,10 @@ export default function DocumentUpload({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/metrics"] });
+      if (processId) {
+        queryClient.invalidateQueries({ queryKey: ['documents', 'process', processId] });
+        queryClient.invalidateQueries({ queryKey: ['documents', 'available', processId, customerId] });
+      }
       toast({
         title: "Success",
         description: "Document uploaded successfully",
@@ -99,6 +115,7 @@ export default function DocumentUpload({
       setTimeout(() => {
         handleClose();
         onUploadComplete && onUploadComplete();
+        onSuccess && onSuccess();
       }, 1000);
     },
     onError: (error: any) => {
@@ -192,7 +209,9 @@ export default function DocumentUpload({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-    onClose && onClose();
+    if (onClose && typeof onClose === 'function') {
+      onClose();
+    }
   };
 
   const onSubmit = (data: any) => {
@@ -317,20 +336,27 @@ export default function DocumentUpload({
         <div>
           <Label htmlFor="customerId">Customer *</Label>
           <Select 
-            value={form.watch("customerId").toString()} 
-            onValueChange={(value) => form.setValue("customerId", parseInt(value))}
+            value={form.watch("customerId") || ""} 
+            onValueChange={(value) => {
+              form.setValue("customerId", value, { shouldValidate: true });
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select customer" />
             </SelectTrigger>
             <SelectContent>
               {Array.isArray(customers) && customers.map((customer: any) => (
-                <SelectItem key={customer.id} value={customer.id.toString()}>
+                <SelectItem key={customer.id} value={customer.id}>
                   {customer.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {form.formState.errors.customerId && (
+            <p className="text-sm text-red-600 mt-1">
+              {form.formState.errors.customerId.message}
+            </p>
+          )}
         </div>
 
         <div>
@@ -350,6 +376,11 @@ export default function DocumentUpload({
               <SelectItem value="Other">Other</SelectItem>
             </SelectContent>
           </Select>
+          {form.formState.errors.category && (
+            <p className="text-sm text-red-600 mt-1">
+              {form.formState.errors.category.message}
+            </p>
+          )}
         </div>
       </div>
 
@@ -360,6 +391,11 @@ export default function DocumentUpload({
           {...form.register("name")}
           placeholder="Enter document name"
         />
+        {form.formState.errors.name && (
+          <p className="text-sm text-red-600 mt-1">
+            {form.formState.errors.name.message}
+          </p>
+        )}
       </div>
 
       <div>
@@ -390,12 +426,15 @@ export default function DocumentUpload({
     </form>
   );
 
-  if (standalone) {
+  // If standalone is explicitly set to true, render without Dialog
+  if (standalone === true) {
     return formContent;
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) handleClose();
+    }}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Upload Document</DialogTitle>

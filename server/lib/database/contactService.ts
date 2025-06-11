@@ -16,15 +16,14 @@ export class ContactService {
       if (customerId) {
         query = query.eq('customer_id', customerId);
       }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
+        const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching contacts:', error);
         return [];
       }
       
-      return data || [];
+      return (data || []).map(this.mapDbContactToContact);
     } catch (error) {
       console.error('Error in getAllContacts:', error);
       return [];
@@ -153,7 +152,6 @@ export class ContactService {
       console.error('Error in deleteContact:', error);
       throw error;
     }  }
-
   /**
    * Get all communications for a contact
    */
@@ -167,13 +165,13 @@ export class ContactService {
       
       if (error) {
         console.error('Error fetching communications:', error);
-        return [];
+        throw error; // Throw error instead of returning empty array to trigger fallback
       }
       
       return (data || []).map(this.mapDbCommunicationToCommunication);
     } catch (error) {
       console.error('Error in getCommunications:', error);
-      return [];
+      throw error; // Re-throw error to trigger fallback mechanism
     }
   }
 
@@ -199,7 +197,6 @@ export class ContactService {
       return undefined;
     }
   }
-
   /**
    * Create a new communication
    */
@@ -219,13 +216,13 @@ export class ContactService {
       
       if (error) {
         console.error('Error creating communication:', error);
-        throw error;
+        throw error; // Throw error to trigger fallback mechanism
       }
       
       return this.mapDbCommunicationToCommunication(data);
     } catch (error) {
       console.error('Error in createCommunication:', error);
-      throw error;
+      throw error; // Re-throw error to trigger fallback
     }
   }
 

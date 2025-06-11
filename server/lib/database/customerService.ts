@@ -5,12 +5,10 @@
 import { supabase } from '../supabase.js';
 import type { Customer, Team, Contact, Document, Service, TimelineEvent, Project } from '../../../shared/types/index.js';
 
-export class CustomerService {
-  
-  async getAllCustomers(): Promise<Customer[]> {
+export class CustomerService {    async getAllCustomers(includeInactive: boolean = false): Promise<Customer[]> {
     try {
-      // Fetch customers with all related data
-      const { data: customers, error } = await supabase
+      // Build query with optional inactive filter
+      let query = supabase
         .from('customers')
         .select(`
           *,
@@ -23,6 +21,13 @@ export class CustomerService {
         `)
         .order('name');
 
+      // Filter out inactive customers unless explicitly requested
+      if (!includeInactive) {
+        query = query.eq('active', true);
+      }
+
+      const { data: customers, error } = await query;
+
       if (error) throw error;
 
       // Transform database rows to Customer objects
@@ -31,9 +36,7 @@ export class CustomerService {
       console.error('Error fetching customers:', error);
       throw error;
     }
-  }
-
-  async getCustomerById(id: string): Promise<Customer | null> {
+  }  async getCustomerById(id: string): Promise<Customer | null> {
     try {
       const { data: customer, error } = await supabase
         .from('customers')
@@ -62,12 +65,15 @@ export class CustomerService {
       throw error;
     }
   }
-
   async createCustomer(customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Customer> {
     try {
+      // Generate customer ID using the pattern found in existing data: c-{timestamp}
+      const customerId = `c-${Date.now()}`;
+      
       const { data: customer, error } = await supabase
         .from('customers')
         .insert({
+          id: customerId,
           name: customerData.name,
           logo: customerData.logo,
           avatar_color: customerData.avatarColor,
@@ -120,18 +126,54 @@ export class CustomerService {
       console.error('Error updating customer:', error);
       throw error;
     }
+  }  async deleteCustomer(id: string): Promise<void> {
+    try {
+      console.log(`CustomerService.deleteCustomer called with id: ${id}`);
+      
+      // Perform soft delete by setting active to false and inactivatedAt timestamp
+      const { data, error } = await supabase
+        .from('customers')
+        .update({ 
+          active: false, 
+          inactivated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error during soft delete:', error);
+        throw error;
+      }
+      
+      console.log('Soft delete successful, updated customer:', data);
+    } catch (error) {
+      console.error('Error inactivating customer:', error);
+      throw error;
+    }
   }
 
-  async deleteCustomer(id: string): Promise<void> {
+  async reactivateCustomer(id: string): Promise<Customer> {
     try {
-      const { error } = await supabase
+      // Reactivate customer by setting active to true and clearing inactivatedAt
+      const { data: customer, error } = await supabase
         .from('customers')
-        .delete()
-        .eq('id', id);
+        .update({ 
+          active: true, 
+          inactivated_at: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Return the complete customer with all related data
+      return this.getCustomerById(customer.id) as Promise<Customer>;
     } catch (error) {
-      console.error('Error deleting customer:', error);
+      console.error('Error reactivating customer:', error);
       throw error;
     }
   }
@@ -209,7 +251,6 @@ export class CustomerService {
       await supabase.from('services').insert(servicesToInsert);
     }
   }
-
   private transformCustomerRow(row: any): Customer {
     return {
       id: row.id,
@@ -219,6 +260,8 @@ export class CustomerService {
       phase: row.phase,
       contractStartDate: row.contract_start_date,
       contractEndDate: row.contract_end_date,
+      active: row.active,
+      inactivatedAt: row.inactivated_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       teams: (row.teams || []).map((team: any) => ({
@@ -244,15 +287,19 @@ export class CustomerService {
         documentIds: process.document_ids,
         contactId: process.contact_id,
         outputDeliveryMethod: process.output_delivery_method,
-        outputDeliveryDetails: process.output_delivery_details,
-        timeline: process.process_timeline_events || []
-      })),
-      timeline: (row.timeline_events || []).map((event: any) => ({
+        outputDeliveryDetails: process.output_delivery_details,        timeline: (process.process_timeline_events || []).map((event: any) => ({
+          id: event.id,
+          date: event.created_at,
+          stage: event.event_type,
+          description: event.description,
+          title: event.title
+        }))
+      })),      timeline: (row.timeline_events || []).map((event: any) => ({
         id: event.id,
-        date: event.date,
+        date: event.created_at,
         title: event.title,
         description: event.description,
-        type: event.type,
+        type: event.event_type,
         icon: event.icon,
         metadata: event.metadata
       })),

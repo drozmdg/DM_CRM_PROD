@@ -9,8 +9,10 @@ import ChatDataProvider from "@/components/ChatDataProvider";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import Customers from "@/pages/Customers";
+import CustomerProfile from "@/pages/CustomerProfile";
 import Contacts from "@/pages/Contacts";
 import Processes from "@/pages/Processes";
+import ProcessDetails from "@/pages/ProcessDetails";
 import Services from "@/pages/Services";
 import Documents from "@/pages/Documents";
 import Timeline from "@/pages/Timeline";
@@ -54,8 +56,10 @@ function Router() {
             <Switch>
               <Route path="/" component={Dashboard} />
               <Route path="/customers" component={Customers} />
+              <Route path="/customers/:customerId" component={CustomerProfile} />
               <Route path="/contacts" component={Contacts} />
               <Route path="/processes" component={Processes} />
+              <Route path="/processes/:processId" component={ProcessDetails} />
               <Route path="/services" component={Services} />
               <Route path="/documents" component={Documents} />
               <Route path="/timeline" component={Timeline} />

@@ -113,6 +113,7 @@ export interface Service {
   id: string;
   name: string;
   monthlyHours: number;
+  customerId: string;
 }
 
 export interface TimelineEvent {
@@ -151,6 +152,8 @@ export interface Customer {
   projects: Project[]; // Added projects array
   contractStartDate?: string;
   contractEndDate?: string;
+  active: boolean; // Soft delete flag
+  inactivatedAt?: string; // When customer was inactivated
   createdAt: string;
   updatedAt: string;
 }

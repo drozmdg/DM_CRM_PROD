@@ -91,9 +91,7 @@ export class DatabaseService {
         timestamp: new Date().toISOString()
       };
     }
-  }
-
-  /**
+  }  /**
    * Get comprehensive dashboard metrics
    */
   async getDashboardMetrics(): Promise<{
@@ -107,29 +105,36 @@ export class DatabaseService {
       byStage: Record<string, number>;
       avgEstimate: number;
     };
-    teams: {
+    services: {
       total: number;
       byCustomer: Record<string, number>;
     };
+    documents: {
+      total: number;
+      totalSize: number;
+      byCategory: Record<string, number>;
+      byCustomer: Record<string, number>;
+    };
   }> {
-    try {
-      // Get customer metrics
+    try {      // Get customer metrics (only active customers)
       const { data: customers, error: customerError } = await supabase
         .from('customers')
-        .select('phase');
+        .select('phase')
+        .eq('active', true);
 
       if (customerError) throw customerError;
 
       const customersByPhase: Record<string, number> = {};
       customers.forEach(customer => {
         customersByPhase[customer.phase] = (customersByPhase[customer.phase] || 0) + 1;
-      });
-
-      // Get process metrics
+      });      // Get process metrics
       const processMetrics = await this.processes.getProcessMetrics();
 
-      // Get team metrics
-      const teamMetrics = await this.teams.getTeamMetrics();
+      // Get service metrics
+      const serviceMetrics = await this.services.getServiceMetrics();
+
+      // Get document metrics
+      const documentMetrics = await this.documents.getDocumentMetrics();
 
       return {
         customers: {
@@ -137,7 +142,8 @@ export class DatabaseService {
           byPhase: customersByPhase
         },
         processes: processMetrics,
-        teams: teamMetrics
+        services: serviceMetrics,
+        documents: documentMetrics
       };
     } catch (error) {
       console.error('Error getting dashboard metrics:', error);

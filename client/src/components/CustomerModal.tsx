@@ -27,10 +27,12 @@ import {
 } from "lucide-react";
 import { insertCustomerSchema } from "@shared/schema";
 import TeamModal from "./TeamModal";
+import ProcessModal from "./ProcessModal";
 import ContactManagement from "./ContactManagement";
 import ServiceManagement from "./ServiceManagement";
 import CustomerTimeline from "./CustomerTimeline";
 import CustomerAvatar from "./CustomerAvatar";
+import DocumentUpload from "./DocumentUpload";
 
 const customerFormSchema = insertCustomerSchema.extend({
   contractStartDate: z.string().optional(),
@@ -47,6 +49,9 @@ export default function CustomerModal({ isOpen, onClose, customer }: CustomerMod
   const [activeTab, setActiveTab] = useState("overview");
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
+  const [selectedProcess, setSelectedProcess] = useState(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -382,7 +387,13 @@ export default function CustomerModal({ isOpen, onClose, customer }: CustomerMod
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h4 className="font-medium">Processes</h4>
-                <Button size="sm">
+                <Button 
+                  size="sm"
+                  onClick={() => {
+                    setSelectedProcess(null);
+                    setIsProcessModalOpen(true);
+                  }}
+                >
                   <Plus className="mr-2" size={16} />
                   Add Process
                 </Button>
@@ -398,9 +409,19 @@ export default function CustomerModal({ isOpen, onClose, customer }: CustomerMod
                           <p className="text-sm text-neutral-600">{process.jiraTicket}</p>
                         )}
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex items-center space-x-2">
                         <Badge variant="outline">{process.status}</Badge>
                         <Badge variant="outline">{process.sdlcStage}</Badge>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedProcess(process);
+                            setIsProcessModalOpen(true);
+                          }}
+                        >
+                          <Edit size={14} />
+                        </Button>
                       </div>
                     </div>
                     <div className="mt-3 flex items-center space-x-4 text-sm text-neutral-600">
@@ -420,7 +441,10 @@ export default function CustomerModal({ isOpen, onClose, customer }: CustomerMod
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h4 className="font-medium">Documents</h4>
-                <Button size="sm">
+                <Button 
+                  size="sm"
+                  onClick={() => setShowUploadDialog(true)}
+                >
                   <Plus className="mr-2" size={16} />
                   Upload Document
                 </Button>
@@ -469,6 +493,28 @@ export default function CustomerModal({ isOpen, onClose, customer }: CustomerMod
           customerId={customer.id}
         />
       )}
+      
+      {/* Document Upload Modal */}
+      {customer && (
+        <DocumentUpload
+          isOpen={showUploadDialog}
+          onClose={() => setShowUploadDialog(false)}
+          customerId={customer.id}
+          onUploadComplete={() => {
+            queryClient.invalidateQueries({ queryKey: ["/api/documents", { customerId: customer.id }] });
+          }}
+        />
+      )}
+      
+      {/* Process Modal */}
+      <ProcessModal
+        isOpen={isProcessModalOpen}
+        onClose={() => {
+          setIsProcessModalOpen(false);
+          setSelectedProcess(null);
+        }}
+        process={selectedProcess}
+      />
     </Dialog>
   );
 }

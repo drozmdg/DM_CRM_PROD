@@ -16,10 +16,14 @@ import { insertProcessSchema } from "@shared/schema";
 import ProcessTimeline from "./ProcessTimeline";
 import ProcessApproval from "./ProcessApproval";
 import ProcessDependencies from "./ProcessDependencies";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const processFormSchema = insertProcessSchema.extend({
-  startDate: z.string(),
+  startDate: z.string().min(1, "Start date is required"),
   dueDate: z.string().optional(),
+  estimate: z.string().optional(), // Change from number to string for form handling
+  customerId: z.string().min(1, "Customer is required"),
+  responsibleContactId: z.string().optional(),
 });
 
 interface ProcessModalProps {
@@ -105,12 +109,16 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log("🔄 Mutation function called with data:", data);
       const url = process ? `/api/processes/${process.id}` : "/api/processes";
       const method = process ? "PUT" : "POST";
+      console.log(`📡 Making ${method} request to ${url}`);
       const response = await apiRequest(method, url, data);
+      console.log("✅ API response received:", response.status);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log("🎉 Mutation success:", result);
       queryClient.invalidateQueries({ queryKey: ["/api/processes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/metrics"] });
       toast({
@@ -120,6 +128,7 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
       onClose();
     },
     onError: (error: any) => {
+      console.error("❌ Mutation error:", error);
       toast({
         title: "Error",
         description: error.message || `Failed to ${process ? "update" : "create"} process`,
@@ -129,20 +138,77 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
   });
 
   const onSubmit = (data: any) => {
+    console.log("🔍 Form submission triggered");
+    console.log("📊 Raw form data:", data);
+    
+    // Check for form validation errors
+    const errors = form.formState.errors;
+    if (Object.keys(errors).length > 0) {
+      console.error("❌ Form validation errors:", errors);
+      toast({
+        title: "Validation Error",
+        description: "Please fix the form errors before submitting",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate required fields
+    if (!data.name || !data.customerId || data.customerId.trim() === "" || !data.startDate) {
+      console.error("❌ Validation failed - missing required fields:", {
+        name: data.name,
+        customerId: data.customerId,
+        startDate: data.startDate
+      });
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields (Name, Customer, Start Date)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate customer ID can be converted to number
+    const customerIdNum = data.customerId.startsWith('c-') ? 
+      parseInt(data.customerId.substring(2)) : 
+      parseInt(data.customerId);
+    
+    if (isNaN(customerIdNum)) {
+      console.error("❌ Validation failed - invalid customer ID:", data.customerId);
+      toast({
+        title: "Validation Error", 
+        description: "Invalid customer ID format",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Fix data type conversion to match backend validation schema and database format
     const submitData = {
       ...data,
-      customerId: parseInt(data.customerId),
-      estimate: data.estimate ? parseInt(data.estimate) : null,
-      responsibleContactId: data.responsibleContactId ? parseInt(data.responsibleContactId) : null,
-      dueDate: data.dueDate || null,
+      // Keep customer ID as string with "c-" prefix (database expects string format)
+      customerId: data.customerId, // Send as-is: "c-1747967673251"
+      // Convert estimate to number or omit field entirely
+      estimate: data.estimate && data.estimate.trim() !== "" ? parseInt(data.estimate) : undefined,
+      // Keep responsibleContactId as string or omit field entirely (backend expects string format)
+      responsibleContactId: data.responsibleContactId && data.responsibleContactId.trim() !== "" ? data.responsibleContactId : undefined,
+      // Ensure dueDate is string or omit field entirely (backend expects string, not null)
+      dueDate: data.dueDate && data.dueDate.trim() !== "" ? data.dueDate : undefined,
+      // Ensure functionalArea is valid enum or omit field entirely (backend rejects empty string)
+      functionalArea: data.functionalArea && data.functionalArea.trim() !== "" ? data.functionalArea : undefined,
     };
+    
+    console.log("🚀 Processed submit data:", submitData);
+    console.log("🎯 Mutation about to be called");
+    
     mutation.mutate(submitData);
   };
 
   const selectedCustomerId = form.watch("customerId");
-  const customerContacts = contacts?.filter((contact: any) => 
-    contact.customerId === parseInt(selectedCustomerId)
-  ) || [];
+  const customerContacts = contacts?.filter((contact: any) => {
+    // Compare customer IDs as strings since both are in "c-" prefix format
+    return contact.customerId === selectedCustomerId;
+  }) || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -274,11 +340,19 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
 
                 <div>
                   <Label htmlFor="functionalArea">Functional Area</Label>
-                  <Input
-                    id="functionalArea"
-                    {...form.register("functionalArea")}
-                    placeholder="Custom Extract"
-                  />
+                  <Select value={form.watch("functionalArea")} onValueChange={(value) => form.setValue("functionalArea", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select functional area" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Standard Data Ingestion">Standard Data Ingestion</SelectItem>
+                      <SelectItem value="Custom Data Ingestion">Custom Data Ingestion</SelectItem>
+                      <SelectItem value="Standard Extract">Standard Extract</SelectItem>
+                      <SelectItem value="Custom Extract">Custom Extract</SelectItem>
+                      <SelectItem value="CRM Refresh">CRM Refresh</SelectItem>
+                      <SelectItem value="New Team Implementation">New Team Implementation</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
@@ -314,7 +388,10 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
                 <Button type="button" variant="outline" onClick={onClose}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={mutation.isPending}>
+                <Button 
+                  type="submit" 
+                  disabled={mutation.isPending}
+                >
                   {mutation.isPending ? "Saving..." : process ? "Update" : "Create"}
                 </Button>
               </div>

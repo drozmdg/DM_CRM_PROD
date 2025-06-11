@@ -25,7 +25,7 @@ export type CommunicationType = 'email' | 'phone' | 'meeting' | 'other';
 
 export interface Communication {
   id: string;
-  contactId: number;
+  contactId: string;
   type: CommunicationType;
   subject: string;
   notes: string;
@@ -52,6 +52,14 @@ export interface Document {
   type: string; // File type (PDF, DOCX, etc.)
   category: DocumentCategory;
   size?: number; // File size in bytes
+  customerId: string; // Customer ID for document association
+  processInfo?: {
+    id: string;
+    name: string;
+    status: string;
+    stage: SDLCStage;
+    functionalArea: FunctionalArea;
+  };
 }
 
 export interface Team {
@@ -95,8 +103,7 @@ export type OutputDeliveryMethod =
   | 'API'
   | 'Database'
   | 'SharePoint'
-  | 'Other'
-  | 'none';
+  | 'Other';
 
 export interface Process {
   id: string;
@@ -116,7 +123,8 @@ export interface Process {
   timeline: ProcessTimelineEvent[]; // Timeline of SDLC stages
   functionalArea?: FunctionalArea; // Type of functional work
   documentIds?: string[]; // IDs of documents linked to this process
-  contactId?: string; // ID of the contact responsible for this process
+  responsibleContactId?: string; // ID of the contact responsible for this process
+  progress?: number; // Progress percentage (0-100)
   outputDeliveryMethod?: OutputDeliveryMethod; // Method for delivering output (for extracts)
   outputDeliveryDetails?: string; // Additional details about output delivery
   customerId: string; // ID of the customer this process belongs to
@@ -126,6 +134,7 @@ export interface Service {
   id: string;
   name: string;
   monthlyHours: number;
+  customerId: string;
 }
 
 export interface TimelineEvent {
@@ -164,6 +173,8 @@ export interface Customer {
   projects: Project[]; // Added projects array
   contractStartDate?: string;
   contractEndDate?: string;
+  active: boolean; // Soft delete flag
+  inactivatedAt?: string; // When customer was inactivated
   createdAt: string;
   updatedAt: string;
 }

@@ -2,8 +2,9 @@ import { apiRequest } from "./queryClient";
 
 // Customer API functions
 export const customerApi = {
-  getAll: async () => {
-    const response = await apiRequest("GET", "/api/customers");
+  getAll: async (includeInactive: boolean = false) => {
+    const url = includeInactive ? "/api/customers?includeInactive=true" : "/api/customers";
+    const response = await apiRequest("GET", url);
     return response.json();
   },
   
@@ -24,6 +25,11 @@ export const customerApi = {
   
   delete: async (id: number) => {
     await apiRequest("DELETE", `/api/customers/${id}`);
+  },
+  
+  reactivate: async (id: number) => {
+    const response = await apiRequest("PATCH", `/api/customers/${id}/reactivate`);
+    return response.json();
   },
 };
 
@@ -52,7 +58,7 @@ export const contactApi = {
 
 // Communication API functions
 export const communicationApi = {
-  getAll: async (contactId: number) => {
+  getAll: async (contactId: string) => {
     const response = await apiRequest("GET", `/api/communications?contactId=${contactId}`);
     return response.json();
   },

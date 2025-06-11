@@ -57,12 +57,15 @@ export class TeamService {
       throw error;
     }
   }
-
   async createTeam(teamData: Omit<Team, 'id'> & { customerId: string }): Promise<Team> {
     try {
+      // Generate a unique ID for the team
+      const teamId = `team-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
       const { data: team, error } = await supabase
         .from('teams')
         .insert({
+          id: teamId,
           name: teamData.name,
           finance_code: teamData.financeCode,
           customer_id: teamData.customerId

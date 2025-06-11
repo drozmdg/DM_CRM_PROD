@@ -42,3 +42,5 @@ yarn-error.log*
 .temp
 .tmp
 .cache
+# Development archive
+development-archive/

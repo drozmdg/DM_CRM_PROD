@@ -20,13 +20,14 @@ import {
   Filter,
   Calendar,
   User,
-  Building
+  Building,
+  Workflow,
+  Settings
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 // Extended Document interface to include database fields
 interface ExtendedDocument extends Document {
-  customer_id?: string;
   created_at?: string;
   uploaded_by?: string;
 }
@@ -104,32 +105,29 @@ export default function Documents() {
         <div className="text-lg">Loading documents...</div>
       </div>
     );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Documents</h1>
-          <p className="text-muted-foreground">
-            Manage and organize all your business documents
-          </p>
-        </div>
-        <Button onClick={() => setShowUpload(true)}>
-          <Upload className="mr-2 h-4 w-4" />
-          Upload Document
-        </Button>
-      </div>
-
-      <Tabs defaultValue="browse" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="browse">Browse</TabsTrigger>
-          <TabsTrigger value="search">Advanced Search</TabsTrigger>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-        </TabsList>
-
-        {/* Browse Tab */}
+  }  return (
+    <div className="min-h-screen bg-neutral-50">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Documents</h1>
+              <p className="text-muted-foreground">
+                Manage and organize all your business documents
+              </p>
+            </div>
+            <Button onClick={() => setShowUpload(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Document
+            </Button>
+          </div>          {/* Tabs Section */}
+          <Tabs defaultValue="overview" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="search">Advanced Search</TabsTrigger>
+              <TabsTrigger value="browse">Browse</TabsTrigger>
+            </TabsList>{/* Browse Tab */}
         <TabsContent value="browse" className="space-y-4">
           {/* Filters */}
           <div className="flex items-center space-x-4">
@@ -154,9 +152,7 @@ export default function Documents() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          {/* Documents List */}
+          </div>          {/* Documents List */}
           <div className="grid gap-4">
             {filteredDocuments.length === 0 ? (
               <Card>
@@ -166,41 +162,56 @@ export default function Documents() {
                     <p className="text-muted-foreground">No documents found</p>
                   </div>
                 </CardContent>
-              </Card>            ) : (
+              </Card>
+            ) : (
               filteredDocuments.map((document: ExtendedDocument) => (
                 <Card key={document.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <FileText className="h-8 w-8 text-muted-foreground" />
-                        <div>
-                          <h3 className="font-semibold">{document.name}</h3>
+                      <div className="flex items-center space-x-4 flex-1">
+                        <FileText className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold truncate">{document.name}</h3>
                           {document.description && (
-                            <p className="text-sm text-muted-foreground">{document.description}</p>
-                          )}
-                          <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
-                            {document.customer_id && (
+                            <p className="text-sm text-muted-foreground truncate">{document.description}</p>
+                          )}                          <div className="flex items-center flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
+                            {document.customerId && (
                               <div className="flex items-center">
-                                <Building className="mr-1 h-3 w-3" />
-                                {getCustomerName(document.customer_id)}
+                                <Building className="mr-1 h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{getCustomerName(document.customerId)}</span>
+                              </div>
+                            )}
+                            {document.size && (
+                              <div className="flex items-center">
+                                <FileText className="mr-1 h-3 w-3 flex-shrink-0" />
+                                <span>{(document.size / 1024).toFixed(1)} KB</span>
                               </div>
                             )}
                             {document.created_at && (
                               <div className="flex items-center">
-                                <Calendar className="mr-1 h-3 w-3" />
-                                {format(new Date(document.created_at), 'MMM d, yyyy')}
+                                <Calendar className="mr-1 h-3 w-3 flex-shrink-0" />
+                                <span>{format(new Date(document.created_at), 'MMM d, yyyy')}</span>
                               </div>
                             )}
                             {document.uploaded_by && (
                               <div className="flex items-center">
-                                <User className="mr-1 h-3 w-3" />
-                                {document.uploaded_by}
+                                <User className="mr-1 h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{document.uploaded_by}</span>
+                              </div>
+                            )}
+                            {(document as any).processInfo && (
+                              <div className="flex items-center">
+                                <Workflow className="mr-1 h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{(document as any).processInfo.name}</span>
+                                <Badge variant="outline" className="ml-2 text-xs">
+                                  {(document as any).processInfo.status}
+                                </Badge>
                               </div>
                             )}
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 flex-shrink-0 ml-4">
                         <Badge className={getCategoryColor(document.category)}>
                           {document.category}
                         </Badge>
@@ -264,8 +275,8 @@ export default function Documents() {
               <CardDescription>
                 Recently uploaded documents across all categories
               </CardDescription>
-            </CardHeader>
-            <CardContent>              <div className="space-y-2">
+            </CardHeader>            <CardContent>
+              <div className="space-y-2">
                 {(documents as ExtendedDocument[])
                   .sort((a: ExtendedDocument, b: ExtendedDocument) => 
                     new Date(b.created_at || b.uploadDate).getTime() - new Date(a.created_at || a.uploadDate).getTime()
@@ -273,25 +284,25 @@ export default function Documents() {
                   .slice(0, 5)
                   .map((document: ExtendedDocument) => (
                     <div key={document.id} className="flex items-center justify-between p-2 hover:bg-muted rounded-md">
-                      <div className="flex items-center space-x-3">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">{document.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {document.customer_id ? getCustomerName(document.customer_id) : 'Unknown Customer'} • {format(new Date(document.created_at || document.uploadDate), 'MMM d, yyyy')}
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{document.name}</p>                          <p className="text-xs text-muted-foreground truncate">
+                            {document.customerId ? getCustomerName(document.customerId) : 'Unknown Customer'} • {format(new Date(document.created_at || document.uploadDate), 'MMM d, yyyy')}
                           </p>
                         </div>
                       </div>
-                      <Badge className={getCategoryColor(document.category)}>
+                      <Badge className={`${getCategoryColor(document.category)} flex-shrink-0 ml-2`}>
                         {document.category}
                       </Badge>
                     </div>
                   ))}
               </div>
             </CardContent>
-          </Card>
-        </TabsContent>
+          </Card>        </TabsContent>
       </Tabs>
+        </div>
+      </div>
 
       {/* Upload Modal */}
       {showUpload && (

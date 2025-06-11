@@ -3,7 +3,6 @@ import { Document, Customer } from '../../../shared/types';
 
 // Extended Document type to include additional properties from database
 interface ExtendedDocument extends Document {
-  customer_id?: number;
   created_at?: string;
   uploaded_by?: string;
   file_size?: number;
@@ -97,10 +96,8 @@ export default function DocumentSearch({ documents, customers, onDocumentSelect 
       // Category filter
       if (filters.category !== 'all' && doc.category !== filters.category) {
         return false;
-      }
-
-      // Customer filter
-      if (filters.customerId !== 'all' && doc.customer_id && doc.customer_id.toString() !== filters.customerId) {
+      }      // Customer filter
+      if (filters.customerId !== 'all' && doc.customerId && doc.customerId !== filters.customerId) {
         return false;
       }
 
@@ -402,10 +399,9 @@ export default function DocumentSearch({ documents, customers, onDocumentSelect 
                       {document.description && (
                         <p className="text-sm text-muted-foreground">{document.description}</p>
                       )}
-                      <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
-                        <div className="flex items-center">
+                      <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">                        <div className="flex items-center">
                           <Building className="mr-1 h-3 w-3" />
-                          {getCustomerName(extDoc.customer_id?.toString() || '')}
+                          {getCustomerName(document.customerId || '')}
                         </div>
                         {extDoc.uploaded_by && (
                           <div className="flex items-center">

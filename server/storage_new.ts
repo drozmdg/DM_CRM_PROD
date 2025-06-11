@@ -10,6 +10,7 @@ import {
   Process, 
   Document, 
   TimelineEvent,
+  ProcessTimelineEvent,
   ChatSession,
   ChatMessage,
   Communication,
@@ -22,25 +23,23 @@ import {
 interface Storage {
   // Initialization
   initialize(): Promise<void>;
-  
-  // User operations
+    // User operations
   getUser(id: string): Promise<User | undefined>;
-  
-  // Customer operations
-  getCustomers(): Promise<Customer[]>;
+    // Customer operations
+  getCustomers(includeInactive?: boolean): Promise<Customer[]>;
   getCustomer(id: string): Promise<Customer | undefined>;
   createCustomer(customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Customer>;
   updateCustomer(id: string, updates: Partial<Customer>): Promise<Customer>;
   deleteCustomer(id: string): Promise<void>;
+  reactivateCustomer(id: string): Promise<Customer>;
   
   // Contact operations
   getContacts(customerId?: string): Promise<Contact[]>;
   createContact(contact: Omit<Contact, 'id'>): Promise<Contact>;
   updateContact(id: string, updates: Partial<Contact>): Promise<Contact>;
   deleteContact(id: string): Promise<void>;
-
   // Communication operations
-  getCommunications(contactId: number): Promise<Communication[]>;
+  getCommunications(contactId: string): Promise<Communication[]>;
   getCommunication(id: string): Promise<Communication | undefined>;
   createCommunication(communication: Omit<Communication, 'id' | 'createdAt'>): Promise<Communication>;
   updateCommunication(id: string, updates: Partial<Communication>): Promise<Communication>;
@@ -59,22 +58,28 @@ interface Storage {
   createTeam(team: Omit<Team, 'id'> & { customerId: string }): Promise<Team>;
   updateTeam(id: string, updates: Partial<Team>): Promise<Team>;
   deleteTeam(id: string): Promise<void>;
-  
-  // Service operations
+    // Service operations
   getServices(customerId?: string): Promise<Service[]>;
   createService(service: Omit<Service, 'id'> & { customerId: string }): Promise<Service>;
-  
-  // Document operations
+  updateService(id: string, updates: Partial<Service>): Promise<Service>;
+  deleteService(id: string): Promise<void>;
+    // Document operations
   getDocuments(customerId?: string): Promise<Document[]>;
   getDocument(id: string): Promise<Document | undefined>;
   createDocument(document: Omit<Document, 'id'>): Promise<Document>;
   updateDocument(id: string, updates: Partial<Document>): Promise<Document>;
   deleteDocument(id: string): Promise<void>;
-  
+    // Process document operations
+  getDocumentsByProcessId(processId: string): Promise<Document[]>;
+  attachDocumentToProcess(processId: string, documentId: string): Promise<void>;
+  removeDocumentFromProcess(processId: string, documentId: string): Promise<void>;
+  createDocumentForProcess(processId: string, document: Omit<Document, 'id'> & { customerId: string }): Promise<Document>;
+  getAvailableDocumentsForProcess(processId: string, customerId: string): Promise<Document[]>;
   // Timeline operations
   getTimelineEvents(customerId?: string, processId?: string): Promise<TimelineEvent[]>;
   getTimelineEvent(id: string): Promise<TimelineEvent | undefined>;
-  createTimelineEvent(event: Omit<TimelineEvent, 'id'>): Promise<TimelineEvent>;
+  createTimelineEvent(event: Omit<TimelineEvent, 'id'> & { customerId: string }): Promise<TimelineEvent>;
+  createProcessTimelineEvent(event: { processId: string; stage: string; description: string; date: string }): Promise<ProcessTimelineEvent>;
   updateTimelineEvent(id: string, updates: Partial<TimelineEvent>): Promise<TimelineEvent>;
   deleteTimelineEvent(id: string): Promise<void>;
   
@@ -83,15 +88,14 @@ interface Storage {
   getChatSession(id: string): Promise<ChatSession | undefined>;
   createChatSession(session: Omit<ChatSession, 'id' | 'createdAt' | 'updatedAt'>): Promise<ChatSession>;
   updateChatSession(id: string, updates: Partial<ChatSession>): Promise<ChatSession>;
-  deleteChatSession(id: string): Promise<void>;
-  getChatMessages(sessionId: string): Promise<ChatMessage[]>;
-  createChatMessage(message: Omit<ChatMessage, 'id'>): Promise<ChatMessage>;
+  deleteChatSession(id: string): Promise<void>;  getChatMessages(sessionId: string): Promise<ChatMessage[]>;
+  createChatMessage(message: Omit<ChatMessage, 'id'> & { sessionId: string }): Promise<ChatMessage>;
+
+  // Health check
+  getHealthStatus(): Promise<{ status: string; message: string; timestamp: string }>;
 
   // Dashboard metrics
   getDashboardMetrics(): Promise<any>;
-  
-  // Health check
-  getHealthStatus(): Promise<{ status: string; message: string; timestamp: string }>;
 }
 
 /**
@@ -117,10 +121,9 @@ class SupabaseStorage implements Storage {
       role: 'admin' as UserRole
     };
   }
-
   // Customer operations
-  async getCustomers(): Promise<Customer[]> {
-    return databaseService.customers.getAllCustomers();
+  async getCustomers(includeInactive: boolean = false): Promise<Customer[]> {
+    return databaseService.customers.getAllCustomers(includeInactive);
   }
 
   async getCustomer(id: string): Promise<Customer | undefined> {
@@ -135,9 +138,12 @@ class SupabaseStorage implements Storage {
   async updateCustomer(id: string, updates: Partial<Customer>): Promise<Customer> {
     return databaseService.customers.updateCustomer(id, updates);
   }
-
   async deleteCustomer(id: string): Promise<void> {
     return databaseService.customers.deleteCustomer(id);
+  }
+
+  async reactivateCustomer(id: string): Promise<Customer> {
+    return databaseService.customers.reactivateCustomer(id);
   }
 
   // Contact operations
@@ -156,20 +162,45 @@ class SupabaseStorage implements Storage {
   async deleteContact(id: string): Promise<void> {
     return databaseService.contacts.deleteContact(id);
   }
-
   // Communication operations with static in-memory fallback
-  async getCommunications(contactId: number): Promise<Communication[]> {
+  async getCommunications(contactId: string): Promise<Communication[]> {
     console.log('SupabaseStorage.getCommunications called with contactId:', contactId);
     try {
       // Try to get from database first
-      const communications = await databaseService.contacts.getCommunications(String(contactId));
+      const communications = await databaseService.contacts.getCommunications(contactId);
       console.log('Database returned communications:', communications.length);
-      return communications;
-    } catch (error) {
+      return communications;    } catch (error) {
       console.log('Database failed, using in-memory fallback for getCommunications:', error);
-      // Fallback to static in-memory storage
-      const filtered = SupabaseStorage.inMemoryCommunications.filter(c => c.contactId === contactId);
-      console.log('In-memory fallback returned communications:', filtered.length);
+      console.log('Current in-memory communications count:', SupabaseStorage.inMemoryCommunications.length);
+      console.log('Looking for contactId:', contactId, 'type:', typeof contactId);
+      
+      // Debug: Log all stored communications
+      SupabaseStorage.inMemoryCommunications.forEach((comm, index) => {
+        console.log(`  [${index}] ID: ${comm.id}, ContactId: ${comm.contactId} (type: ${typeof comm.contactId}), Subject: ${comm.subject}`);
+      });
+      
+      // Fallback to static in-memory storage - handle both string UUIDs and numeric IDs
+      const contactIdNum = parseInt(contactId, 10);
+      if (isNaN(contactIdNum)) {
+        // Handle UUID strings by exact string match
+        console.log('Filtering for UUID string:', contactId);
+        const filtered = SupabaseStorage.inMemoryCommunications.filter(c => {
+          const match = String(c.contactId) === contactId;
+          console.log(`  Comparing "${String(c.contactId)}" === "${contactId}" -> ${match}`);
+          return match;
+        });
+        console.log('In-memory fallback returned communications (UUID):', filtered.length);
+        return filtered;
+      }
+      // Handle numeric IDs
+      console.log('Filtering for numeric ID:', contactIdNum);
+      const filtered = SupabaseStorage.inMemoryCommunications.filter(c => {
+        const commContactIdNum = parseInt(c.contactId, 10);
+        const match = commContactIdNum === contactIdNum;
+        console.log(`  Comparing ${commContactIdNum} === ${contactIdNum} -> ${match}`);
+        return match;
+      });
+      console.log('In-memory fallback returned communications (numeric):', filtered.length);
       return filtered;
     }
   }
@@ -310,7 +341,6 @@ class SupabaseStorage implements Storage {
   async deleteTeam(id: string): Promise<void> {
     return databaseService.teams.deleteTeam(id);
   }
-
   // Service operations
   async getServices(customerId?: string): Promise<Service[]> {
     if (customerId) {
@@ -323,103 +353,151 @@ class SupabaseStorage implements Storage {
     return databaseService.services.createService(service);
   }
 
-  // Document operations
-  async getDocuments(customerId?: string): Promise<Document[]> {
-    // For now return empty array - will implement document service
-    return [];
+  async updateService(id: string, updates: Partial<Service>): Promise<Service> {
+    return databaseService.services.updateService(id, updates);
   }
 
+  async deleteService(id: string): Promise<void> {
+    return databaseService.services.deleteService(id);
+  }  // Document operations
+  async getDocuments(customerId?: string): Promise<Document[]> {
+    console.log('SupabaseStorage.getDocuments called with customerId:', customerId);
+    if (customerId) {
+      return databaseService.documents.getDocumentsByCustomerIdWithProcessInfo(customerId);
+    }
+    return databaseService.documents.getAllDocumentsWithProcessInfo();
+  }
   async getDocument(id: string): Promise<Document | undefined> {
-    return undefined;
+    console.log('SupabaseStorage.getDocument called with id:', id);
+    const document = await databaseService.documents.getDocumentById(id);
+    return document || undefined;
   }
 
   async createDocument(document: Omit<Document, 'id'>): Promise<Document> {
-    return {
-      id: crypto.randomUUID(),
-      ...document
-    };
+    return databaseService.documents.createDocument(document);
   }
 
   async updateDocument(id: string, updates: Partial<Document>): Promise<Document> {
-    throw new Error('Document update not implemented yet');
+    return databaseService.documents.updateDocument(id, updates);
   }
 
   async deleteDocument(id: string): Promise<void> {
-    // Mock implementation
+    return databaseService.documents.deleteDocument(id);
   }
 
+  async getDocumentsByProcessId(processId: string): Promise<Document[]> {
+    return databaseService.documents.getDocumentsByProcessId(processId);
+  }
+
+  async getAvailableDocumentsForProcess(processId: string, customerId: string): Promise<Document[]> {
+    return databaseService.documents.getAvailableDocumentsForProcess(processId, customerId);
+  }
+
+  async attachDocumentToProcess(processId: string, documentId: string): Promise<void> {
+    return databaseService.documents.attachDocumentToProcess(processId, documentId);
+  }
+
+  async removeDocumentFromProcess(processId: string, documentId: string): Promise<void> {
+    return databaseService.documents.removeDocumentFromProcess(processId, documentId);
+  }
+
+  async createDocumentForProcess(processId: string, document: Omit<Document, 'id'> & { customerId: string }): Promise<Document> {
+    return databaseService.documents.createDocumentForProcess(processId, document);
+  }
   // Timeline operations
   async getTimelineEvents(customerId?: string, processId?: string): Promise<TimelineEvent[]> {
-    return [];
+    console.log('SupabaseStorage.getTimelineEvents called with customerId:', customerId, 'processId:', processId);
+
+    // Use the TimelineService method that supports both customer and process filtering
+    return databaseService.timeline.getAllTimelineEvents(customerId, processId);
   }
 
   async getTimelineEvent(id: string): Promise<TimelineEvent | undefined> {
-    return undefined;
+    const event = await databaseService.timeline.getTimelineEventById(id);
+    return event || undefined;
   }
-
-  async createTimelineEvent(event: Omit<TimelineEvent, 'id'>): Promise<TimelineEvent> {
-    return {
-      id: crypto.randomUUID(),
-      ...event
-    };
+  async createTimelineEvent(event: Omit<TimelineEvent, 'id'> & { customerId: string }): Promise<TimelineEvent> {
+    return databaseService.timeline.createTimelineEvent(event);
+  }
+  async createProcessTimelineEvent(event: { processId: string; stage: string; description: string; date: string }): Promise<ProcessTimelineEvent> {
+    console.log('SupabaseStorage.createProcessTimelineEvent called with:', event);
+    try {
+      return await databaseService.processes.createProcessTimelineEvent(event);
+    } catch (error) {
+      console.error('Error creating process timeline event:', error);
+      throw error;
+    }
   }
 
   async updateTimelineEvent(id: string, updates: Partial<TimelineEvent>): Promise<TimelineEvent> {
-    throw new Error('Timeline event update not implemented yet');
+    return databaseService.timeline.updateTimelineEvent(id, updates);
   }
 
   async deleteTimelineEvent(id: string): Promise<void> {
-    // Mock implementation
+    return databaseService.timeline.deleteTimelineEvent(id);
   }
-
   // Chat operations
   async getChatSessions(userId?: string): Promise<ChatSession[]> {
-    return [];
+    return databaseService.chat.getChatSessions(userId);
   }
 
   async getChatSession(id: string): Promise<ChatSession | undefined> {
-    return undefined;
+    const session = await databaseService.chat.getChatSession(id);
+    return session || undefined;
   }
 
-  async createChatSession(session: Omit<ChatSession, 'id' | 'createdAt' | 'updatedAt'>): Promise<ChatSession> {
-    return {
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...session
-    };
+  async createChatSession(session: Omit<ChatSession, 'id'>): Promise<ChatSession> {
+    return databaseService.chat.createChatSession(session);
   }
 
   async updateChatSession(id: string, updates: Partial<ChatSession>): Promise<ChatSession> {
-    throw new Error('Chat session update not implemented yet');
+    return databaseService.chat.updateChatSession(id, updates);
   }
 
   async deleteChatSession(id: string): Promise<void> {
-    // Mock implementation
+    return databaseService.chat.deleteChatSession(id);
   }
 
   async getChatMessages(sessionId: string): Promise<ChatMessage[]> {
-    return [];
+    return databaseService.chat.getChatMessages(sessionId);
+  }
+  async createChatMessage(message: Omit<ChatMessage, 'id'> & { sessionId: string }): Promise<ChatMessage> {
+    return databaseService.chat.createChatMessage({
+      ...message,
+      sessionId: message.sessionId
+    });
   }
 
-  async createChatMessage(message: Omit<ChatMessage, 'id'>): Promise<ChatMessage> {
-    return {
-      id: crypto.randomUUID(),
-      ...message
-    };
+  async updateChatMessage(id: string, updates: Partial<ChatMessage>): Promise<ChatMessage> {
+    return databaseService.chat.updateChatMessage(id, updates);
   }
 
-  // Dashboard operations
+  async deleteChatMessage(id: string): Promise<void> {
+    return databaseService.chat.deleteChatMessage(id);
+  }
+
+  // Health check
+  async getHealthStatus(): Promise<{ status: string; message: string; timestamp: string }> {
+    try {
+      // Test database connectivity
+      await databaseService.users.getUserById('health-check');
+      return {
+        status: 'healthy',
+        message: 'Database connection successful',
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        message: `Database connection failed: ${error}`,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+  // Dashboard metrics
   async getDashboardMetrics(): Promise<any> {
     return databaseService.getDashboardMetrics();
   }
-
-  async getHealthStatus(): Promise<{ status: string; message: string; timestamp: string }> {
-    return databaseService.getHealthStatus();
-  }
 }
 
-// Create and export storage instance
-const storage = new SupabaseStorage();
-
-export { storage };
+export const storage = new SupabaseStorage();

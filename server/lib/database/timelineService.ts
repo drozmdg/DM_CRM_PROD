@@ -5,24 +5,37 @@
 import { supabase } from '../supabase.js';
 import type { TimelineEvent } from '../../../shared/types/index.js';
 
-export class TimelineService {
-  /**
+export class TimelineService {  /**
    * Get all timeline events, optionally filtered by customer
    */
-  async getAllTimelineEvents(customerId?: string): Promise<TimelineEvent[]> {
+  async getAllTimelineEvents(customerId?: string, processId?: string): Promise<TimelineEvent[]> {
     try {
       let query = supabase.from('timeline_events').select('*');
       
       if (customerId) {
-        query = query.eq('customer_id', customerId);
+        // Convert string customer ID to integer for database query
+        const customerIdInt = parseInt(customerId);
+        if (!isNaN(customerIdInt)) {
+          query = query.eq('customer_id', customerIdInt);
+        }
       }
       
-      const { data, error } = await query.order('date', { ascending: false });
+      if (processId) {
+        console.log(`TimelineService: Filtering by process_id = ${processId}`);
+        query = query.eq('process_id', processId);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching timeline events:', error);
         // Return mock data for graceful degradation
         return this.getMockTimelineEvents(customerId);
+      }
+      
+      console.log(`TimelineService: Found ${data?.length || 0} timeline events`);
+      if (processId) {
+        console.log('Timeline events for process:', data?.map(e => ({ id: e.id, process_id: e.process_id })));
       }
       
       return (data || []).map(this.mapDbTimelineEventToTimelineEvent);
@@ -76,25 +89,31 @@ export class TimelineService {
       console.error('Error in getTimelineEventsByCustomerId:', error);
       return this.getMockTimelineEvents(customerId);
     }
-  }
-
-  /**
+  }  /**
    * Create a new timeline event
-   */
-  async createTimelineEvent(event: Partial<TimelineEvent> & { customerId: string }): Promise<TimelineEvent> {
+   */  async createTimelineEvent(event: Partial<TimelineEvent> & { customerId: string }): Promise<TimelineEvent> {
+    console.log('TimelineService.createTimelineEvent called with:', JSON.stringify(event, null, 2));
+    
     try {
+      // Generate a unique ID for the timeline event
+      const eventId = `event-${event.customerId}-${Date.now()}`;
+      
+      console.log(`Generated event ID: ${eventId}`);
+      console.log(`Customer ID: ${event.customerId} (keeping as string)`);
+        // Map to the actual database schema based on the existing data structure
       const eventData = {
-        id: event.id || crypto.randomUUID(),
-        customer_id: event.customerId,
-        date: event.date || new Date().toISOString(),
+        id: eventId, // Generate unique string ID
+        customer_id: event.customerId, // Keep as string - matches existing data
+        date: event.date || new Date().toISOString().split('T')[0], // Date in YYYY-MM-DD format
+        type: event.type || 'other', // Use type field as shown in existing data
         title: event.title,
-        description: event.description,
-        type: event.type || 'other',
-        icon: event.icon,
-        metadata: event.metadata || {},
+        description: event.description || null,
+        icon: event.icon || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+
+      console.log('About to insert into timeline_events with mapped data:', JSON.stringify(eventData, null, 2));
 
       const { data, error } = await supabase
         .from('timeline_events')
@@ -103,11 +122,14 @@ export class TimelineService {
         .single();
       
       if (error) {
-        console.error('Error creating timeline event:', error);
+        console.error('Supabase error creating timeline event:', JSON.stringify(error, null, 2));
         throw new Error(`Failed to create timeline event: ${error.message}`);
       }
       
-      return this.mapDbTimelineEventToTimelineEvent(data);
+      console.log('Supabase returned data:', JSON.stringify(data, null, 2));
+      const result = this.mapDbTimelineEventToTimelineEvent(data);
+      console.log('Mapped result:', JSON.stringify(result, null, 2));
+      return result;
     } catch (error) {
       console.error('Error in createTimelineEvent:', error);
       throw error;
@@ -118,14 +140,13 @@ export class TimelineService {
    * Update an existing timeline event
    */
   async updateTimelineEvent(id: string, updates: Partial<TimelineEvent>): Promise<TimelineEvent> {
-    try {
-      const { data, error } = await supabase
+    try {      const { data, error } = await supabase
         .from('timeline_events')
         .update({
           date: updates.date,
           title: updates.title,
           description: updates.description,
-          type: updates.type,
+          type: updates.type, // Use type to match the column name Supabase expects
           icon: updates.icon,
           metadata: updates.metadata,
           updated_at: new Date().toISOString()
@@ -277,21 +298,30 @@ export class TimelineService {
         action
       }
     });
-  }
-
-  /**
+  }  /**
    * Map database timeline event to application timeline event
-   */
-  private mapDbTimelineEventToTimelineEvent(dbEvent: any): TimelineEvent {
-    return {
-      id: dbEvent.id,
-      date: dbEvent.date,
-      title: dbEvent.title,
-      description: dbEvent.description,
-      type: dbEvent.type,
-      icon: dbEvent.icon,
+   */  private mapDbTimelineEventToTimelineEvent(dbEvent: any): TimelineEvent {
+    // Create a proper TimelineEvent object that matches the interface
+    const timelineEvent: TimelineEvent = {
+      id: dbEvent.id?.toString() || '', // Convert integer ID to string
+      date: dbEvent.created_at || new Date().toISOString(), // Use created_at as date
+      title: dbEvent.title || '',
+      description: dbEvent.description || '',
+      type: dbEvent.type || 'other', // Use type as the primary field for type
+      icon: dbEvent.icon || '',
       metadata: dbEvent.metadata || {}
     };
+    
+    // Attach additional properties for internal use (not part of the interface)
+    const result = timelineEvent as any;
+    if (dbEvent.customer_id) {
+      result.customerId = `c-${dbEvent.customer_id}`;
+    }
+    if (dbEvent.process_id) {
+      result.processId = `process-${dbEvent.process_id}`;
+    }
+    
+    return timelineEvent;
   }
 
   /**
