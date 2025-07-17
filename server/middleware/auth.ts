@@ -4,7 +4,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { SupabaseAuthService } from '../lib/auth/supabaseAuthService.js';
+import { LocalAuthService } from '../lib/auth/localAuthService.js';
 import type { User } from '../../shared/types/index.js';
 
 // Extend Express Request interface to include user
@@ -16,7 +16,7 @@ declare global {
   }
 }
 
-const authService = new SupabaseAuthService();
+const authService = new LocalAuthService();
 
 /**
  * Middleware to authenticate user and attach to request

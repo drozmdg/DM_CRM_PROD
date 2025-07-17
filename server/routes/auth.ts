@@ -4,14 +4,14 @@
  */
 
 import { Router } from 'express';
-import { SupabaseAuthService } from '../lib/auth/supabaseAuthService.js';
+import { LocalAuthService } from '../lib/auth/localAuthService.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { authRateLimit, passwordResetRateLimit } from '../middleware/security.js';
 import { validateInput, secureString, secureEmail } from '../middleware/validation.js';
 import { z } from 'zod';
 
 const router = Router();
-const authService = new SupabaseAuthService();
+const authService = new LocalAuthService();
 
 // Enhanced validation schemas with security
 const registerSchema = z.object({
@@ -52,18 +52,23 @@ router.post('/register', authRateLimit, validateInput(registerSchema), async (re
   try {
     const validatedData = req.body; // Already validated by middleware
 
-    const user = await authService.createUser(validatedData);
+    const result = await authService.register(validatedData.email, validatedData.password, validatedData.name, validatedData.role);
+    
+    if (!result.success) {
+      res.status(400).json({
+        success: false,
+        error: result.error,
+        code: result.code
+      });
+      return;
+    }
 
     res.status(201).json({
       success: true,
       data: {
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          avatar: user.avatar
-        }
+        user: result.user,
+        accessToken: result.token,
+        refreshToken: result.refreshToken
       },
       message: 'User registered successfully'
     });
@@ -103,15 +108,23 @@ router.post('/register', authRateLimit, validateInput(registerSchema), async (re
  */
 router.post('/login', authRateLimit, validateInput(loginSchema), async (req, res) => {
   try {
-    const session = await authService.login(req.body);
+    const { email, password } = req.body;
+    const result = await authService.login(email, password);
+
+    if (!result.success) {
+      return res.status(401).json({
+        success: false,
+        error: result.error,
+        code: result.code
+      });
+    }
 
     res.json({
       success: true,
       data: {
-        user: session.user,
-        accessToken: session.accessToken,
-        refreshToken: session.refreshToken,
-        expiresAt: session.expiresAt
+        user: result.user,
+        accessToken: result.token,
+        refreshToken: result.refreshToken
       },
       message: 'Login successful'
     });
@@ -194,7 +207,7 @@ router.post('/logout', requireAuth, async (req, res) => {
     const token = authHeader?.substring(7); // Remove 'Bearer ' prefix
 
     if (token) {
-      await authService.signOut(token);
+      await authService.logout(token);
     }
 
     res.json({

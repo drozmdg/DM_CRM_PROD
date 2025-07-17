@@ -183,8 +183,12 @@ export const corsOptions = {
     const allowedOrigins = [
       'http://localhost:5173', // Vite dev server
       'http://localhost:3000', // Express server
+      'http://localhost', // Nginx frontend (Docker)
+      'http://localhost:80', // Nginx frontend explicit port
       'http://127.0.0.1:5173',
       'http://127.0.0.1:3000',
+      'http://127.0.0.1', // Local nginx
+      'http://127.0.0.1:80',
       process.env.FRONTEND_URL
     ].filter(Boolean);
 

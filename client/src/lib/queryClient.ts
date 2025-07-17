@@ -7,6 +7,12 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Function to get auth headers from localStorage
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('auth_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function apiRequest(
   method: string,
   url: string,
@@ -15,6 +21,7 @@ export async function apiRequest(
 ): Promise<Response> {
   const headers: Record<string, string> = {
     ...(data ? { "Content-Type": "application/json" } : {}),
+    ...getAuthHeaders(), // Always include auth headers
     ...(authHeaders || {}),
   };
 
@@ -46,6 +53,9 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const res = await fetch(queryKey[0] as string, {
+      headers: {
+        ...getAuthHeaders(), // Include auth headers
+      },
       credentials: "include",
     });
 
