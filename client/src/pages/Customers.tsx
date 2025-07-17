@@ -10,6 +10,7 @@ import CustomerCardGrid from "@/components/CustomerCardGrid";
 import { customerApi } from "@/lib/api";
 import { usePermissions } from "@/components/auth/ProtectedRoute";
 import { useApiClient } from "@/lib/authenticatedApiClient";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,8 +20,9 @@ export default function Customers() {
   const queryClient = useQueryClient();
   const { canEdit } = usePermissions();
   const apiClient = useApiClient();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
-  // Use React Query for data fetching
+  // Use React Query for data fetching - but only when authenticated
   const { data: customers = [], isLoading, error } = useQuery({
     queryKey: [includeInactive ? "/api/customers?includeInactive=true" : "/api/customers"],
     queryFn: async () => {
@@ -35,6 +37,7 @@ export default function Customers() {
       
       return data;
     },
+    enabled: isAuthenticated && !authLoading, // Only run when authenticated
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: "always",
@@ -42,7 +45,7 @@ export default function Customers() {
   });
 
   // Early return for loading and error states
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return <div className="p-6">Loading customers...</div>;
   }
 
