@@ -1,0 +1,470 @@
+{
+  "summary": {
+    "total": 15,
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0,
+    "success_rate": "100.0",
+    "duration": "1s",
+    "timestamp": "2025-07-17T00:20:44.691Z"
+  },
+  "environment": {
+    "deployment_type": "Internal Network",
+    "database": "PostgreSQL 15 (Docker)",
+    "security_context": "Corporate Firewall Protected",
+    "testing_scope": "Internal Production Environment"
+  },
+  "security_assessment": {
+    "authentication": "implemented",
+    "authorization": "basic_rbac",
+    "data_protection": "container_level",
+    "audit_logging": "minimal",
+    "network_security": "internal_appropriate"
+  },
+  "test_categories": {
+    "Authentication Security": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "Authorization": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "Data Protection": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "Audit Logging": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "Network Security": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "detailed_results": [
+    {
+      "id": "Authentication Security-JWT Configuration Security",
+      "category": "Authentication Security",
+      "name": "JWT Configuration Security",
+      "status": "PASSED",
+      "duration": 2,
+      "findings": {
+        "jwt_secret_status": "secure",
+        "jwt_secret_length": 84,
+        "production_ready": true
+      },
+      "error": null
+    },
+    {
+      "id": "Authentication Security-Database Authentication Security",
+      "category": "Authentication Security",
+      "name": "Database Authentication Security",
+      "status": "PASSED",
+      "duration": 76,
+      "findings": {
+        "unauthorized_access_blocked": true,
+        "authentication_required": true
+      },
+      "error": null
+    },
+    {
+      "id": "Authentication Security-Environment Variable Security",
+      "category": "Authentication Security",
+      "name": "Environment Variable Security",
+      "status": "PASSED",
+      "duration": 2,
+      "findings": {
+        "sensitive_vars_present": [
+          "JWT_SECRET",
+          "SUPABASE_SERVICE_ROLE_KEY"
+        ],
+        "security_issues": []
+      },
+      "error": null
+    },
+    {
+      "id": "Authorization-Database Access Control",
+      "category": "Authorization",
+      "name": "Database Access Control",
+      "status": "PASSED",
+      "duration": 56,
+      "findings": {
+        "row_level_security": "not_implemented",
+        "table_permissions": [
+          {
+            "table": "tablename",
+            "rls_enabled": false
+          },
+          {
+            "table": "contacts",
+            "rls_enabled": false
+          },
+          {
+            "table": "customers",
+            "rls_enabled": false
+          },
+          {
+            "table": "documents",
+            "rls_enabled": false
+          },
+          {
+            "table": "processes",
+            "rls_enabled": false
+          }
+        ],
+        "access_control_status": "internal_network_appropriate"
+      },
+      "error": null
+    },
+    {
+      "id": "Authorization-Role-Based Access Control",
+      "category": "Authorization",
+      "name": "Role-Based Access Control",
+      "status": "PASSED",
+      "duration": 107,
+      "findings": {
+        "user_roles_table": true,
+        "role_based_queries": true,
+        "authorization_framework": "present"
+      },
+      "error": null
+    },
+    {
+      "id": "Authorization-Data Access Permissions",
+      "category": "Authorization",
+      "name": "Data Access Permissions",
+      "status": "PASSED",
+      "duration": 155,
+      "findings": {
+        "customer_data_protected": true,
+        "sensitive_fields_identified": [
+          {
+            "table": "customers",
+            "field": "name",
+            "type": "business_critical",
+            "record_count": 4
+          },
+          {
+            "table": "contacts",
+            "field": "email",
+            "type": "pii",
+            "record_count": 13
+          },
+          {
+            "table": "processes",
+            "field": "description",
+            "type": "business_sensitive",
+            "record_count": 5
+          }
+        ],
+        "data_access_logging": false
+      },
+      "error": null
+    },
+    {
+      "id": "Data Protection-Data Encryption at Rest",
+      "category": "Data Protection",
+      "name": "Data Encryption at Rest",
+      "status": "PASSED",
+      "duration": 18,
+      "findings": {
+        "database_encryption": "container_level",
+        "file_system_security": "docker_managed",
+        "encryption_status": "container_protected"
+      },
+      "error": null
+    },
+    {
+      "id": "Data Protection-Sensitive Data Identification",
+      "category": "Data Protection",
+      "name": "Sensitive Data Identification",
+      "status": "PASSED",
+      "duration": 203,
+      "findings": {
+        "pii_fields_found": [
+          {
+            "table": "contacts",
+            "field": "email",
+            "classification": "pii",
+            "record_count": 13
+          },
+          {
+            "table": "contacts",
+            "field": "phone",
+            "classification": "pii",
+            "record_count": 13
+          }
+        ],
+        "business_critical_data": [
+          {
+            "table": "customers",
+            "field": "name",
+            "classification": "business_critical",
+            "record_count": 4
+          },
+          {
+            "table": "processes",
+            "field": "description",
+            "classification": "business_sensitive",
+            "record_count": 5
+          }
+        ],
+        "data_classification": "completed"
+      },
+      "error": null
+    },
+    {
+      "id": "Data Protection-Data Backup Security",
+      "category": "Data Protection",
+      "name": "Data Backup Security",
+      "status": "PASSED",
+      "duration": 125,
+      "findings": {
+        "backup_accessibility": "restricted",
+        "backup_encryption": "container_level",
+        "backup_retention_policy": "manual"
+      },
+      "error": null
+    },
+    {
+      "id": "Audit Logging-Database Activity Logging",
+      "category": "Audit Logging",
+      "name": "Database Activity Logging",
+      "status": "PASSED",
+      "duration": 98,
+      "findings": {
+        "query_logging": "basic",
+        "connection_logging": "docker_logs",
+        "audit_trail": "minimal"
+      },
+      "error": null
+    },
+    {
+      "id": "Audit Logging-System Access Logging",
+      "category": "Audit Logging",
+      "name": "System Access Logging",
+      "status": "PASSED",
+      "duration": 20,
+      "findings": {
+        "docker_logs": false,
+        "database_connections": "docker_managed",
+        "access_monitoring": "container_level"
+      },
+      "error": null
+    },
+    {
+      "id": "Audit Logging-Security Event Detection",
+      "category": "Audit Logging",
+      "name": "Security Event Detection",
+      "status": "PASSED",
+      "duration": 0,
+      "findings": {
+        "failed_login_detection": "manual",
+        "unusual_activity_monitoring": "basic",
+        "security_alerts": "none_configured",
+        "security_event_level": "internal_network_appropriate"
+      },
+      "error": null
+    },
+    {
+      "id": "Network Security-Internal Network Security",
+      "category": "Network Security",
+      "name": "Internal Network Security",
+      "status": "PASSED",
+      "duration": 18,
+      "findings": {
+        "database_port_exposure": "external_accessible",
+        "container_network": "isolated",
+        "network_security_level": "internal_appropriate"
+      },
+      "error": null
+    },
+    {
+      "id": "Network Security-Container Security Configuration",
+      "category": "Network Security",
+      "name": "Container Security Configuration",
+      "status": "PASSED",
+      "duration": 18,
+      "findings": {
+        "container_isolation": true,
+        "security_context": "default",
+        "network_policies": "sales-dashboard-dev-network"
+      },
+      "error": null
+    },
+    {
+      "id": "Network Security-SSL/TLS Configuration",
+      "category": "Network Security",
+      "name": "SSL/TLS Configuration",
+      "status": "PASSED",
+      "duration": 0,
+      "findings": {
+        "database_ssl": "internal_network",
+        "application_ssl": "development",
+        "encryption_in_transit": "internal_appropriate",
+        "ssl_requirement_level": "internal_network_deployment"
+      },
+      "error": null
+    }
+  ],
+  "security_findings": {
+    "Authentication Security-JWT Configuration Security": {
+      "jwt_secret_status": "secure",
+      "jwt_secret_length": 84,
+      "production_ready": true
+    },
+    "Authentication Security-Database Authentication Security": {
+      "unauthorized_access_blocked": true,
+      "authentication_required": true
+    },
+    "Authentication Security-Environment Variable Security": {
+      "sensitive_vars_present": [
+        "JWT_SECRET",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
+      "security_issues": []
+    },
+    "Authorization-Database Access Control": {
+      "row_level_security": "not_implemented",
+      "table_permissions": [
+        {
+          "table": "tablename",
+          "rls_enabled": false
+        },
+        {
+          "table": "contacts",
+          "rls_enabled": false
+        },
+        {
+          "table": "customers",
+          "rls_enabled": false
+        },
+        {
+          "table": "documents",
+          "rls_enabled": false
+        },
+        {
+          "table": "processes",
+          "rls_enabled": false
+        }
+      ],
+      "access_control_status": "internal_network_appropriate"
+    },
+    "Authorization-Role-Based Access Control": {
+      "user_roles_table": true,
+      "role_based_queries": true,
+      "authorization_framework": "present"
+    },
+    "Authorization-Data Access Permissions": {
+      "customer_data_protected": true,
+      "sensitive_fields_identified": [
+        {
+          "table": "customers",
+          "field": "name",
+          "type": "business_critical",
+          "record_count": 4
+        },
+        {
+          "table": "contacts",
+          "field": "email",
+          "type": "pii",
+          "record_count": 13
+        },
+        {
+          "table": "processes",
+          "field": "description",
+          "type": "business_sensitive",
+          "record_count": 5
+        }
+      ],
+      "data_access_logging": false
+    },
+    "Data Protection-Data Encryption at Rest": {
+      "database_encryption": "container_level",
+      "file_system_security": "docker_managed",
+      "encryption_status": "container_protected"
+    },
+    "Data Protection-Sensitive Data Identification": {
+      "pii_fields_found": [
+        {
+          "table": "contacts",
+          "field": "email",
+          "classification": "pii",
+          "record_count": 13
+        },
+        {
+          "table": "contacts",
+          "field": "phone",
+          "classification": "pii",
+          "record_count": 13
+        }
+      ],
+      "business_critical_data": [
+        {
+          "table": "customers",
+          "field": "name",
+          "classification": "business_critical",
+          "record_count": 4
+        },
+        {
+          "table": "processes",
+          "field": "description",
+          "classification": "business_sensitive",
+          "record_count": 5
+        }
+      ],
+      "data_classification": "completed"
+    },
+    "Data Protection-Data Backup Security": {
+      "backup_accessibility": "restricted",
+      "backup_encryption": "container_level",
+      "backup_retention_policy": "manual"
+    },
+    "Audit Logging-Database Activity Logging": {
+      "query_logging": "basic",
+      "connection_logging": "docker_logs",
+      "audit_trail": "minimal"
+    },
+    "Audit Logging-System Access Logging": {
+      "docker_logs": false,
+      "database_connections": "docker_managed",
+      "access_monitoring": "container_level"
+    },
+    "Audit Logging-Security Event Detection": {
+      "failed_login_detection": "manual",
+      "unusual_activity_monitoring": "basic",
+      "security_alerts": "none_configured",
+      "security_event_level": "internal_network_appropriate"
+    },
+    "Network Security-Internal Network Security": {
+      "database_port_exposure": "external_accessible",
+      "container_network": "isolated",
+      "network_security_level": "internal_appropriate"
+    },
+    "Network Security-Container Security Configuration": {
+      "container_isolation": true,
+      "security_context": "default",
+      "network_policies": "sales-dashboard-dev-network"
+    },
+    "Network Security-SSL/TLS Configuration": {
+      "database_ssl": "internal_network",
+      "application_ssl": "development",
+      "encryption_in_transit": "internal_appropriate",
+      "ssl_requirement_level": "internal_network_deployment"
+    }
+  },
+  "recommendations": [
+    "Security testing passed - system appropriate for internal network deployment",
+    "Consider implementing enhanced audit logging for compliance requirements",
+    "Monitor security configurations as system evolves",
+    "Validate corporate firewall rules for additional security layer",
+    "Implement monitoring for unusual database access patterns"
+  ]
+}

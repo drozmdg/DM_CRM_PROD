@@ -4,20 +4,30 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Edit, Mail, Phone, Calendar, Building, Users, FileText, Activity, Settings, Clock } from "lucide-react";
+import { ArrowLeft, Edit, Mail, Phone, Calendar, Building, Users, FileText, Activity, Settings, Clock, Package, Download } from "lucide-react";
 import CustomerAvatar from "@/components/CustomerAvatar";
 import CustomerStatusIndicator from "@/components/CustomerStatusIndicator";
 import CustomerDocumentManager from "@/components/CustomerDocumentManager";
-import CustomerTimeline from "@/components/CustomerTimeline";
 import EditCustomerModal from "@/components/EditCustomerModal";
+import CustomerNotes from "@/components/CustomerNotes";
+import CustomerImportantDates from "@/components/CustomerImportantDates";
+import InternalContactManager from "@/components/InternalContactManager";
+import ProductModal from "@/components/ProductModal";
+import TeamModal from "@/components/TeamModal";
+import CustomerReportExportModal from "@/components/CustomerReportExportModal";
 import { Badge } from "@/components/ui/badge";
+import CustomerPhaseBadge from "@/components/CustomerPhaseBadge";
+import ServiceStatusBadge from "@/components/ServiceStatusBadge";
+import ContactTypeBadge from "@/components/ContactTypeBadge";
+import StatusBadge from "@/components/StatusBadge";
 
 interface CustomerProfileHeaderProps {
   customer: any;
   onEdit: () => void;
+  onExportReport: () => void;
 }
 
-function CustomerProfileHeader({ customer, onEdit }: CustomerProfileHeaderProps) {
+function CustomerProfileHeader({ customer, onEdit, onExportReport }: CustomerProfileHeaderProps) {
   const handleGoBack = () => {
     window.history.back();
   };
@@ -34,10 +44,20 @@ function CustomerProfileHeader({ customer, onEdit }: CustomerProfileHeaderProps)
             <span>Back to Customers</span>
           </Button>
           
-          <Button onClick={onEdit} className="bg-primary hover:bg-primary/90">
-            <Edit size={16} className="mr-2" />
-            Edit Customer
-          </Button>
+          <div className="flex space-x-3">
+            <Button
+              variant="outline"
+              onClick={onExportReport}
+              className="border-primary text-primary hover:bg-primary hover:text-white"
+            >
+              <Download size={16} className="mr-2" />
+              Export Report
+            </Button>
+            <Button onClick={onEdit} className="bg-primary hover:bg-primary/90">
+              <Edit size={16} className="mr-2" />
+              Edit Customer
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-start space-x-6">
@@ -114,9 +134,7 @@ function CustomerInformation({ customer }: CustomerInformationProps) {
             <div>
               <label className="text-sm font-medium text-neutral-600">Phase</label>
               <div className="mt-1">
-                <Badge variant="outline" className={getPhaseColor(customer.phase)}>
-                  {customer.phase}
-                </Badge>
+                <CustomerPhaseBadge phase={customer.phase} />
               </div>
             </div>
           </div>
@@ -226,12 +244,7 @@ function CustomerServices({ customerId }: CustomerServicesProps) {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Badge 
-                variant="outline" 
-                className={service.monthlyHours > 0 ? "bg-success/10 text-success border-success/20" : "bg-neutral/10 text-neutral-600"}
-              >
-                {service.monthlyHours > 0 ? "Active" : "Inactive"}
-              </Badge>
+              <ServiceStatusBadge isActive={service.monthlyHours > 0} />
             </div>
           </div>
         ))}
@@ -248,16 +261,6 @@ function CustomerServices({ customerId }: CustomerServicesProps) {
   );
 }
 
-function getPhaseColor(phase: string) {
-  switch (phase) {
-    case "New Activation": return "bg-success/10 text-success border-success/20";
-    case "Steady State": return "bg-primary/10 text-primary border-primary/20";
-    case "Contracting": return "bg-warning/10 text-warning border-warning/20";
-    case "Pending Termination": return "bg-destructive/10 text-destructive border-destructive/20";
-    case "Terminated": return "bg-muted text-muted-foreground border-muted/20";
-    default: return "bg-muted text-muted-foreground border-muted/20";
-  }
-}
 
 interface RelatedProcessesProps {
   customerId: string;
@@ -300,9 +303,7 @@ function RelatedProcesses({ customerId }: RelatedProcessesProps) {
                   <p className="text-sm text-neutral-600">{process.description}</p>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Badge variant="outline" className={getStatusColor(process.status)}>
-                    {process.status}
-                  </Badge>
+                  <StatusBadge status={process.status} />
                 </div>
               </div>
             ))}
@@ -325,15 +326,163 @@ function RelatedProcesses({ customerId }: RelatedProcessesProps) {
   );
 }
 
-function getStatusColor(status: string) {
-  switch (status) {
-    case "Active": return "bg-success/10 text-success border-success/20";
-    case "Completed": return "bg-primary/10 text-primary border-primary/20";
-    case "On Hold": return "bg-warning/10 text-warning border-warning/20";
-    case "Cancelled": return "bg-destructive/10 text-destructive border-destructive/20";
-    default: return "bg-muted text-muted-foreground border-muted/20";
-  }
+
+interface CustomerTeamsProps {
+  customerId: string;
 }
+
+function CustomerTeams({ customerId }: CustomerTeamsProps) {
+  const [showTeamModal, setShowTeamModal] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<any>(null);
+  
+  const { data: teams } = useQuery({
+    queryKey: ["/api/teams", { customerId }],
+    queryFn: async () => {
+      const response = await fetch(`/api/teams?customerId=${customerId}`, { 
+        credentials: "include" 
+      });
+      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+      return response.json();
+    },
+  });
+  
+  // Fetch products for each team to show in the display
+  const { data: allProducts } = useQuery({
+    queryKey: ["/api/products", { customerId }],
+    queryFn: async () => {
+      const response = await fetch(`/api/products?customerId=${customerId}`, { 
+        credentials: "include" 
+      });
+      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+      return response.json();
+    },
+  });
+  
+  const getTeamProducts = (teamId: string) => {
+    if (!allProducts) return [];
+    return allProducts.filter((product: any) => 
+      product.teams?.some((tp: any) => tp.teamId === teamId)
+    );
+  };
+  
+  const handleTeamClick = (team: any) => {
+    setSelectedTeam(team);
+    setShowTeamModal(true);
+  };
+
+  const formatDate = (date: string | null) => {
+    if (!date) return "Not set";
+    return new Date(date).toLocaleDateString();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Users size={18} />
+            <span>Teams</span>
+          </div>
+          <Badge variant="outline">{teams?.length || 0}</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {teams && teams.length > 0 ? (
+          <div className="space-y-3">
+            {teams.slice(0, 5).map((team: any) => {
+              const teamProducts = getTeamProducts(team.id);
+              return (
+                <div 
+                  key={team.id} 
+                  className="p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors cursor-pointer"
+                  onClick={() => handleTeamClick(team)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3 flex-1">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Users className="text-primary" size={16} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium text-neutral-800">{team.name}</h4>
+                          {teamProducts.length > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              {teamProducts.length} product{teamProducts.length !== 1 ? 's' : ''}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-neutral-600 mb-2">
+                          <span>Finance Code: {team.financeCode}</span>
+                          <span>Start: {formatDate(team.startDate)}</span>
+                          <span>End: {formatDate(team.endDate)}</span>
+                        </div>
+                        
+                        {/* Show pharmaceutical products this team manages */}
+                        {teamProducts.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs font-medium text-neutral-500 mb-1">Manages pharmaceutical products:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {teamProducts.slice(0, 3).map((product: any) => (
+                                <Badge key={product.id} variant="secondary" className="text-xs">
+                                  {product.name}
+                                  {product.therapeuticArea && ` (${product.therapeuticArea})`}
+                                </Badge>
+                              ))}
+                              {teamProducts.length > 3 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{teamProducts.length - 3} more
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTeamClick(team);
+                      }}
+                    >
+                      Manage
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+            {teams.length > 5 && (
+              <div className="text-center pt-2">
+                <Button variant="outline" size="sm">
+                  View All {teams.length} Teams
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Users className="mx-auto text-neutral-400 mb-2" size={32} />
+            <p className="text-neutral-600">No teams found</p>
+          </div>
+        )}
+      </CardContent>
+      
+      {showTeamModal && (
+        <TeamModal
+          isOpen={showTeamModal}
+          onClose={() => {
+            setShowTeamModal(false);
+            setSelectedTeam(null);
+          }}
+          team={selectedTeam}
+          customerId={customerId}
+        />
+      )}
+    </Card>
+  );
+}
+
 
 interface CustomerContactsProps {
   customerId: string;
@@ -387,9 +536,7 @@ function CustomerContacts({ customerId }: CustomerContactsProps) {
                       <Phone size={12} />
                     </Button>
                   )}
-                  <Badge variant="outline" className={contact.type === 'Client' ? 'bg-primary/10 text-primary' : 'bg-neutral/10 text-neutral-600'}>
-                    {contact.type}
-                  </Badge>
+                  <ContactTypeBadge type={contact.type} />
                 </div>
               </div>
             ))}
@@ -416,66 +563,12 @@ interface CustomerActivityFeedProps {
   customerId: string;
 }
 
-function CustomerActivityFeed({ customerId }: CustomerActivityFeedProps) {
-  const { data: timeline } = useQuery({
-    queryKey: ["/api/timeline", { customerId }],
-    queryFn: async () => {
-      const response = await fetch(`/api/timeline?customerId=${customerId}`, { 
-        credentials: "include" 
-      });
-      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
-      return response.json();
-    },
-  });
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Activity size={18} />
-          <span>Recent Activity</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {timeline && timeline.length > 0 ? (
-          <div className="space-y-4">
-            {timeline.slice(0, 10).map((event: any, index: number) => (
-              <div key={event.id} className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-neutral-800">{event.title}</p>
-                  {event.description && (
-                    <p className="text-sm text-neutral-600 mt-1">{event.description}</p>
-                  )}
-                  <p className="text-xs text-neutral-500 mt-2">
-                    {new Date(event.date).toLocaleDateString()} • {event.entityType}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {timeline.length > 10 && (
-              <div className="text-center pt-2">
-                <Button variant="outline" size="sm">
-                  View All Activity
-                </Button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Activity className="mx-auto text-neutral-400 mb-2" size={32} />
-            <p className="text-neutral-600">No recent activity</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function CustomerProfile() {
   const { customerId } = useParams<{ customerId: string }>();
   const [, setLocation] = useLocation();
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const { data: customer, isLoading, refetch } = useQuery({
     queryKey: ["/api/customers", customerId],
     queryFn: async () => {
@@ -488,21 +581,13 @@ export default function CustomerProfile() {
     enabled: !!customerId,
   });
 
-  // Fetch timeline data separately for the timeline tab
-  const { data: timeline } = useQuery({
-    queryKey: ["/api/timeline", { customerId }],
-    queryFn: async () => {
-      const response = await fetch(`/api/timeline?customerId=${customerId}`, { 
-        credentials: "include" 
-      });
-      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
-      return response.json();
-    },
-    enabled: !!customerId,
-  });
 
   const handleEdit = () => {
     setShowEditModal(true);
+  };
+
+  const handleExportReport = () => {
+    setShowExportModal(true);
   };
 
   if (isLoading) {
@@ -535,37 +620,51 @@ export default function CustomerProfile() {
   }
   return (
     <div className="min-h-screen bg-neutral-50">
-      <CustomerProfileHeader customer={customer} onEdit={handleEdit} />
+      <CustomerProfileHeader customer={customer} onEdit={handleEdit} onExportReport={handleExportReport} />
       
       <div className="max-w-7xl mx-auto px-6 py-8">        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="processes">Processes</TabsTrigger>
             <TabsTrigger value="contacts">Contacts</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            <TabsTrigger value="notes">Notes</TabsTrigger>
+            <TabsTrigger value="dates">Important Dates</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
             <CustomerInformation customer={customer} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <RelatedProcesses customerId={customerId!} />
-              <CustomerContacts customerId={customerId!} />
+              <CustomerTeams customerId={customerId!} />
             </div>
           </TabsContent>
 
           <TabsContent value="processes" className="space-y-6">
             <RelatedProcesses customerId={customerId!} />
-          </TabsContent>          <TabsContent value="contacts" className="space-y-6">
-            <CustomerContacts customerId={customerId!} />
+          </TabsContent>
+
+          <TabsContent value="contacts" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <CustomerContacts customerId={customerId!} />
+              <InternalContactManager 
+                customerId={customerId!} 
+                customerName={customer.name}
+              />
+            </div>
           </TabsContent>          <TabsContent value="documents" className="space-y-6">
             <CustomerDocumentManager 
               customerId={customerId!} 
               customerName={customer.name}
             />
-          </TabsContent>          <TabsContent value="timeline" className="space-y-6">
-            <CustomerTimeline customerId={customerId!} timeline={timeline || []} />
+          </TabsContent>          <TabsContent value="notes" className="space-y-6">
+            <CustomerNotes customerId={customerId!} />
           </TabsContent>
+
+          <TabsContent value="dates" className="space-y-6">
+            <CustomerImportantDates customerId={customerId!} />
+          </TabsContent>
+
         </Tabs>
       </div>      <EditCustomerModal
         customer={customer}
@@ -575,6 +674,13 @@ export default function CustomerProfile() {
           setShowEditModal(false);
           refetch();
         }}
+      />
+
+      <CustomerReportExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        customerId={customerId!}
+        customerName={customer.name}
       />
     </div>
   );

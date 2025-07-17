@@ -1,0 +1,32 @@
+/* Custom CSS to fix bg-muted issue */
+.bg-muted {
+  background-color: #f9fafb !important;
+}
+
+.bg-muted\/50 {
+  background-color: rgba(249, 250, 251, 0.5) !important;
+}
+
+.text-muted-foreground {
+  color: #71717a !important;
+}
+
+.data-\[state\=selected\]\:bg-muted {
+  background-color: #f9fafb !important;
+}
+
+.hover\:bg-muted\/50:hover {
+  background-color: rgba(249, 250, 251, 0.5) !important;
+}
+
+.data-\[state\=on\]\:bg-accent {
+  background-color: #ff6b35 !important;
+}
+
+.data-\[state\=on\]\:text-accent-foreground {
+  color: #f8fafc !important;
+}
+
+.hover\:bg-muted:hover {
+  background-color: #f9fafb !important;
+}

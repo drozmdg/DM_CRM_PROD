@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +16,11 @@ import {
   Phone,
   Mail,
   RotateCcw,
-  UserX
+  UserX,
+  Lock
 } from "lucide-react";
 import CustomerAvatar from "./CustomerAvatar";
+import { usePermissions } from "./auth/ProtectedRoute";
 import type { Customer } from "@shared/types";
 
 interface CustomerCardProps {
@@ -31,6 +33,7 @@ interface CustomerCardProps {
 
 export default function CustomerCard({ customer, onView, onEdit, onReactivate, onDeactivate }: CustomerCardProps) {
   const [, setLocation] = useLocation();
+  const { canEditCustomers } = usePermissions();
   
   // Fetch related data for this customer
   const { data: processes } = useQuery({
@@ -82,9 +85,8 @@ export default function CustomerCard({ customer, onView, onEdit, onReactivate, o
       case "New Activation": return "bg-success/10 text-success border-success/20";
       case "Steady State": return "bg-primary/10 text-primary border-primary/20";
       case "Contracting": return "bg-warning/10 text-warning border-warning/20";
-      case "Pending Termination": return "bg-destructive/10 text-destructive border-destructive/20";
-      case "Terminated": return "bg-muted text-muted-foreground border-muted/20";
-      default: return "bg-muted text-muted-foreground border-muted/20";
+      case "Pending Termination": return "bg-destructive/10 text-destructive border-destructive/20";      case "Terminated": return "bg-gray-100 text-gray-600 border-gray-200";
+      default: return "bg-gray-100 text-gray-600 border-gray-200";
     }
   };
 
@@ -110,6 +112,9 @@ export default function CustomerCard({ customer, onView, onEdit, onReactivate, o
   const statusCounts = getProcessStatusCounts();
   const activeServices = getActiveServices();
   const leadContact = getLeadContact();
+  
+  // Check edit permissions
+  const canEdit = canEditCustomers;
   return (
     <Card className={`hover:shadow-lg transition-all duration-300 cursor-pointer group border-l-4 ${
       customer.active === false 
@@ -265,7 +270,7 @@ export default function CustomerCard({ customer, onView, onEdit, onReactivate, o
             <Eye size={14} className="mr-1" />
             View Profile
           </Button>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2">            {/* Reactivate button */}
             {customer.active === false && onReactivate && (
               <Button 
                 variant="ghost" 
@@ -294,16 +299,32 @@ export default function CustomerCard({ customer, onView, onEdit, onReactivate, o
                 <UserX size={14} />
               </Button>
             )}
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(customer);
-              }}
-            >
-              <Edit size={14} />
-            </Button>
+            
+            {/* Edit button with permission check */}
+            {canEdit ? (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(customer);
+                }}
+                title="Edit customer"
+                className="hover:bg-neutral-100"
+              >
+                <Edit size={14} />
+              </Button>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                disabled
+                title="You don't have permission to edit this customer"
+                className="opacity-50"
+              >
+                <Lock size={14} />
+              </Button>
+            )}
             <Button 
               variant="ghost" 
               size="sm"

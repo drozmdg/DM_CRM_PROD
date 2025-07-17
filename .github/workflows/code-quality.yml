@@ -1,0 +1,482 @@
+name: Code Quality Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  # Job 1: TypeScript and Linting
+  typescript-and-linting:
+    name: TypeScript & Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd client && npm ci
+
+      - name: TypeScript type checking - Backend
+        run: npm run check
+
+      - name: TypeScript type checking - Frontend
+        run: |
+          cd client
+          npx tsc --noEmit
+
+      - name: ESLint - Backend (if configured)
+        run: |
+          if [ -f .eslintrc.js ] || [ -f .eslintrc.json ] || [ -f package.json ]; then
+            echo "Running backend ESLint..."
+            npx eslint . --ext .ts,.js --format=json --output-file eslint-backend-results.json || true
+            npx eslint . --ext .ts,.js --format=stylish || echo "ESLint found issues"
+          else
+            echo "ESLint not configured for backend"
+          fi
+
+      - name: ESLint - Frontend (if configured)
+        run: |
+          cd client
+          if [ -f .eslintrc.js ] || [ -f .eslintrc.json ] || [ -f package.json ]; then
+            echo "Running frontend ESLint..."
+            npx eslint src --ext .ts,.tsx,.js,.jsx --format=json --output-file eslint-frontend-results.json || true
+            npx eslint src --ext .ts,.tsx,.js,.jsx --format=stylish || echo "ESLint found issues"
+          else
+            echo "ESLint not configured for frontend"
+          fi
+
+      - name: Prettier format check
+        run: |
+          # Check if Prettier is configured
+          if [ -f .prettierrc ] || [ -f .prettierrc.json ] || [ -f prettier.config.js ]; then
+            echo "Checking code formatting with Prettier..."
+            npx prettier --check "**/*.{ts,tsx,js,jsx,json,md}" || echo "Prettier formatting issues found"
+          else
+            echo "Prettier not configured"
+          fi
+
+      - name: Upload ESLint results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eslint-results
+          path: |
+            eslint-backend-results.json
+            client/eslint-frontend-results.json
+          retention-days: 7
+
+  # Job 2: Code Complexity Analysis
+  code-complexity:
+    name: Code Complexity Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install complexity analysis tools
+        run: |
+          npm install -g typescript-complexity-report
+          npm install -g jscpd
+
+      - name: Analyze TypeScript complexity
+        run: |
+          echo "📊 Analyzing code complexity..."
+          
+          # Create complexity report for backend
+          find server -name "*.ts" -type f | head -20 | while read file; do
+            echo "Analyzing: $file"
+            npx typescript-complexity-report "$file" || true
+          done > backend-complexity-report.txt
+          
+          # Create complexity report for frontend
+          find client/src -name "*.ts" -name "*.tsx" -type f | head -20 | while read file; do
+            echo "Analyzing: $file"
+            npx typescript-complexity-report "$file" || true
+          done > frontend-complexity-report.txt
+
+      - name: Detect code duplication
+        run: |
+          echo "🔍 Detecting code duplication..."
+          
+          # Check for duplicated code
+          npx jscpd --threshold 20 --reporters html,json --output ./jscpd-report server/ client/src/ || true
+
+      - name: Generate complexity summary
+        run: |
+          echo "## 📊 Code Complexity Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Backend Complexity" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          head -20 backend-complexity-report.txt >> $GITHUB_STEP_SUMMARY || echo "No backend complexity data" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Frontend Complexity" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          head -20 frontend-complexity-report.txt >> $GITHUB_STEP_SUMMARY || echo "No frontend complexity data" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload complexity reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: complexity-reports
+          path: |
+            backend-complexity-report.txt
+            frontend-complexity-report.txt
+            jscpd-report/
+          retention-days: 7
+
+  # Job 3: Code Coverage Analysis
+  code-coverage:
+    name: Code Coverage Analysis
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: sales_dashboard_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd client && npm ci
+
+      - name: Setup test database
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: sales_dashboard_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_test_password
+        run: |
+          PGPASSWORD=postgres_test_password psql -h localhost -U postgres -d sales_dashboard_test -f database/migrations/01-init-complete-schema.sql
+
+      - name: Run backend tests with coverage
+        env:
+          NODE_ENV: test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: sales_dashboard_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_test_password
+          JWT_SECRET: test_jwt_secret_key_for_coverage
+        run: npm run test:coverage
+
+      - name: Run frontend tests with coverage
+        run: |
+          cd client
+          npm run test:coverage
+
+      - name: Merge coverage reports
+        run: |
+          echo "📊 Merging coverage reports..."
+          
+          # Install coverage merge tool
+          npm install -g nyc
+          
+          # Create merged coverage directory
+          mkdir -p coverage/merged
+          
+          # Copy backend coverage
+          cp -r coverage/* coverage/merged/ 2>/dev/null || true
+          
+          # Copy frontend coverage
+          cp -r client/coverage/* coverage/merged/ 2>/dev/null || true
+
+      - name: Generate coverage summary
+        run: |
+          echo "## 📊 Code Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Backend coverage summary
+          if [ -f coverage/lcov.info ]; then
+            echo "### Backend Coverage" >> $GITHUB_STEP_SUMMARY
+            # Extract coverage percentage from lcov report
+            BACKEND_COVERAGE=$(grep -E "LF:|LH:" coverage/lcov.info | awk 'BEGIN{total=0;covered=0} /LF:/{total+=$2} /LH:/{covered+=$2} END{if(total>0) print int(covered*100/total); else print 0}')
+            echo "- **Lines Covered**: ${BACKEND_COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Backend Coverage" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status**: No coverage data available" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Frontend coverage summary
+          if [ -f client/coverage/lcov.info ]; then
+            echo "### Frontend Coverage" >> $GITHUB_STEP_SUMMARY
+            FRONTEND_COVERAGE=$(grep -E "LF:|LH:" client/coverage/lcov.info | awk 'BEGIN{total=0;covered=0} /LF:/{total+=$2} /LH:/{covered+=$2} END{if(total>0) print int(covered*100/total); else print 0}')
+            echo "- **Lines Covered**: ${FRONTEND_COVERAGE}%" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Frontend Coverage" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status**: No coverage data available" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Coverage quality gate
+        run: |
+          echo "🎯 Checking coverage quality gates..."
+          
+          # Set minimum coverage thresholds
+          MIN_BACKEND_COVERAGE=70
+          MIN_FRONTEND_COVERAGE=60
+          
+          # Check backend coverage
+          if [ -f coverage/lcov.info ]; then
+            BACKEND_COVERAGE=$(grep -E "LF:|LH:" coverage/lcov.info | awk 'BEGIN{total=0;covered=0} /LF:/{total+=$2} /LH:/{covered+=$2} END{if(total>0) print int(covered*100/total); else print 0}')
+            echo "Backend coverage: ${BACKEND_COVERAGE}%"
+            if [ "$BACKEND_COVERAGE" -lt "$MIN_BACKEND_COVERAGE" ]; then
+              echo "⚠️ Backend coverage (${BACKEND_COVERAGE}%) below threshold (${MIN_BACKEND_COVERAGE}%)"
+            else
+              echo "✅ Backend coverage meets threshold"
+            fi
+          fi
+          
+          # Check frontend coverage
+          if [ -f client/coverage/lcov.info ]; then
+            FRONTEND_COVERAGE=$(grep -E "LF:|LH:" client/coverage/lcov.info | awk 'BEGIN{total=0;covered=0} /LF:/{total+=$2} /LH:/{covered+=$2} END{if(total>0) print int(covered*100/total); else print 0}')
+            echo "Frontend coverage: ${FRONTEND_COVERAGE}%"
+            if [ "$FRONTEND_COVERAGE" -lt "$MIN_FRONTEND_COVERAGE" ]; then
+              echo "⚠️ Frontend coverage (${FRONTEND_COVERAGE}%) below threshold (${MIN_FRONTEND_COVERAGE}%)"
+            else
+              echo "✅ Frontend coverage meets threshold"
+            fi
+          fi
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            coverage/
+            client/coverage/
+          retention-days: 30
+
+  # Job 4: Bundle Size Analysis (Frontend)
+  bundle-analysis:
+    name: Bundle Size Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install frontend dependencies
+        run: |
+          cd client
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd client
+          npm run build
+
+      - name: Analyze bundle size
+        run: |
+          cd client
+          
+          echo "📦 Analyzing bundle size..."
+          
+          # Install bundle analyzer
+          npm install -g webpack-bundle-analyzer
+          
+          # Generate bundle report
+          if [ -d dist ]; then
+            find dist -name "*.js" -type f -exec ls -lh {} + > bundle-sizes.txt
+            
+            # Calculate total bundle size
+            TOTAL_SIZE=$(find dist -name "*.js" -type f -exec stat -f%z {} + | awk '{total += $1} END {print total/1024/1024 " MB"}')
+            echo "Total JS bundle size: $TOTAL_SIZE"
+            
+            # Check for large files
+            echo "Largest bundle files:" > bundle-analysis.txt
+            find dist -name "*.js" -type f -exec ls -lh {} + | sort -k5 -hr | head -10 >> bundle-analysis.txt
+          fi
+
+      - name: Generate bundle size report
+        run: |
+          echo "## 📦 Bundle Size Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f client/bundle-analysis.txt ]; then
+            echo "### Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat client/bundle-analysis.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+            echo "No bundle analysis data available" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Recommendations" >> $GITHUB_STEP_SUMMARY
+          echo "- Monitor bundle size to prevent performance regression" >> $GITHUB_STEP_SUMMARY
+          echo "- Consider code splitting for files larger than 1MB" >> $GITHUB_STEP_SUMMARY
+          echo "- Use dynamic imports for heavy dependencies" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload bundle analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-analysis
+          path: |
+            client/bundle-sizes.txt
+            client/bundle-analysis.txt
+          retention-days: 7
+
+  # Job 5: Performance Benchmarks
+  performance-benchmarks:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd client && npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Run performance benchmarks
+        run: |
+          echo "⚡ Running performance benchmarks..."
+          
+          # Start the application
+          npm start &
+          APP_PID=$!
+          sleep 15
+          
+          # Install performance testing tools
+          npm install -g lighthouse clinic autocannon
+          
+          # API performance test
+          echo "Testing API performance..."
+          autocannon -c 10 -d 10 http://localhost:3000/api/health > api-performance.txt || true
+          
+          # Frontend performance test with Lighthouse
+          echo "Testing frontend performance..."
+          lighthouse http://localhost:3000 --output json --output-path lighthouse-results.json --quiet --chrome-flags="--headless" || true
+          
+          # Cleanup
+          kill $APP_PID || true
+
+      - name: Generate performance report
+        run: |
+          echo "## ⚡ Performance Benchmark Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # API performance summary
+          if [ -f api-performance.txt ]; then
+            echo "### API Performance" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            grep -E "(Req/Sec|Latency)" api-performance.txt | head -10 >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Frontend performance summary
+          if [ -f lighthouse-results.json ]; then
+            echo "### Frontend Performance (Lighthouse)" >> $GITHUB_STEP_SUMMARY
+            PERFORMANCE_SCORE=$(cat lighthouse-results.json | jq '.lhr.categories.performance.score * 100' 2>/dev/null || echo "N/A")
+            echo "- **Performance Score**: ${PERFORMANCE_SCORE}/100" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload performance reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-reports
+          path: |
+            api-performance.txt
+            lighthouse-results.json
+          retention-days: 7
+
+  # Job 6: Code Quality Summary
+  quality-summary:
+    name: Code Quality Summary
+    runs-on: ubuntu-latest
+    needs: [typescript-and-linting, code-complexity, code-coverage, bundle-analysis]
+    if: always()
+
+    steps:
+      - name: Generate quality summary
+        run: |
+          echo "## 🏆 Code Quality Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality Check | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| TypeScript & Linting | ${{ needs.typescript-and-linting.result }} | Type checking and code style validation |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Complexity | ${{ needs.code-complexity.result }} | Complexity analysis and duplication detection |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Coverage | ${{ needs.code-coverage.result }} | Test coverage measurement |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bundle Analysis | ${{ needs.bundle-analysis.result }} | Frontend bundle size analysis |" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Quality Gate Status" >> $GITHUB_STEP_SUMMARY
+          
+          FAILED_CHECKS=0
+          if [ "${{ needs.typescript-and-linting.result }}" = "failure" ]; then FAILED_CHECKS=$((FAILED_CHECKS+1)); fi
+          if [ "${{ needs.code-complexity.result }}" = "failure" ]; then FAILED_CHECKS=$((FAILED_CHECKS+1)); fi
+          if [ "${{ needs.code-coverage.result }}" = "failure" ]; then FAILED_CHECKS=$((FAILED_CHECKS+1)); fi
+          if [ "${{ needs.bundle-analysis.result }}" = "failure" ]; then FAILED_CHECKS=$((FAILED_CHECKS+1)); fi
+          
+          if [ "$FAILED_CHECKS" -eq 0 ]; then
+            echo "✅ **All quality checks passed**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **$FAILED_CHECKS quality check(s) require attention**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 **Detailed reports available in workflow artifacts**" >> $GITHUB_STEP_SUMMARY

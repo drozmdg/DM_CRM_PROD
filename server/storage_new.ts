@@ -9,7 +9,6 @@ import {
   Service, 
   Process, 
   Document, 
-  TimelineEvent,
   ProcessTimelineEvent,
   ChatSession,
   ChatMessage,
@@ -38,6 +37,11 @@ interface Storage {
   createContact(contact: Omit<Contact, 'id'>): Promise<Contact>;
   updateContact(id: string, updates: Partial<Contact>): Promise<Contact>;
   deleteContact(id: string): Promise<void>;
+  // Internal contact assignment operations
+  getInternalContacts(): Promise<Contact[]>;
+  getContactAssignments(contactId: string): Promise<string[]>;
+  assignContactToCustomer(contactId: string, customerId: string): Promise<void>;
+  unassignContactFromCustomer(contactId: string, customerId: string): Promise<void>;
   // Communication operations
   getCommunications(contactId: string): Promise<Communication[]>;
   getCommunication(id: string): Promise<Communication | undefined>;
@@ -75,13 +79,9 @@ interface Storage {
   removeDocumentFromProcess(processId: string, documentId: string): Promise<void>;
   createDocumentForProcess(processId: string, document: Omit<Document, 'id'> & { customerId: string }): Promise<Document>;
   getAvailableDocumentsForProcess(processId: string, customerId: string): Promise<Document[]>;
-  // Timeline operations
-  getTimelineEvents(customerId?: string, processId?: string): Promise<TimelineEvent[]>;
-  getTimelineEvent(id: string): Promise<TimelineEvent | undefined>;
-  createTimelineEvent(event: Omit<TimelineEvent, 'id'> & { customerId: string }): Promise<TimelineEvent>;
+  
+  // Process timeline operations
   createProcessTimelineEvent(event: { processId: string; stage: string; description: string; date: string }): Promise<ProcessTimelineEvent>;
-  updateTimelineEvent(id: string, updates: Partial<TimelineEvent>): Promise<TimelineEvent>;
-  deleteTimelineEvent(id: string): Promise<void>;
   
   // Chat operations
   getChatSessions(userId?: string): Promise<ChatSession[]>;
@@ -162,6 +162,24 @@ class SupabaseStorage implements Storage {
   async deleteContact(id: string): Promise<void> {
     return databaseService.contacts.deleteContact(id);
   }
+
+  // Internal contact assignment operations
+  async getInternalContacts(): Promise<Contact[]> {
+    return databaseService.contacts.getInternalContacts();
+  }
+
+  async getContactAssignments(contactId: string): Promise<string[]> {
+    return databaseService.contacts.getContactAssignments(contactId);
+  }
+
+  async assignContactToCustomer(contactId: string, customerId: string): Promise<void> {
+    return databaseService.contacts.assignContactToCustomer(contactId, customerId);
+  }
+
+  async unassignContactFromCustomer(contactId: string, customerId: string): Promise<void> {
+    return databaseService.contacts.unassignContactFromCustomer(contactId, customerId);
+  }
+
   // Communication operations with static in-memory fallback
   async getCommunications(contactId: string): Promise<Communication[]> {
     console.log('SupabaseStorage.getCommunications called with contactId:', contactId);
@@ -404,38 +422,11 @@ class SupabaseStorage implements Storage {
   async createDocumentForProcess(processId: string, document: Omit<Document, 'id'> & { customerId: string }): Promise<Document> {
     return databaseService.documents.createDocumentForProcess(processId, document);
   }
-  // Timeline operations
-  async getTimelineEvents(customerId?: string, processId?: string): Promise<TimelineEvent[]> {
-    console.log('SupabaseStorage.getTimelineEvents called with customerId:', customerId, 'processId:', processId);
 
-    // Use the TimelineService method that supports both customer and process filtering
-    return databaseService.timeline.getAllTimelineEvents(customerId, processId);
-  }
-
-  async getTimelineEvent(id: string): Promise<TimelineEvent | undefined> {
-    const event = await databaseService.timeline.getTimelineEventById(id);
-    return event || undefined;
-  }
-  async createTimelineEvent(event: Omit<TimelineEvent, 'id'> & { customerId: string }): Promise<TimelineEvent> {
-    return databaseService.timeline.createTimelineEvent(event);
-  }
   async createProcessTimelineEvent(event: { processId: string; stage: string; description: string; date: string }): Promise<ProcessTimelineEvent> {
-    console.log('SupabaseStorage.createProcessTimelineEvent called with:', event);
-    try {
-      return await databaseService.processes.createProcessTimelineEvent(event);
-    } catch (error) {
-      console.error('Error creating process timeline event:', error);
-      throw error;
-    }
+    return databaseService.processes.createProcessTimelineEvent(event);
   }
 
-  async updateTimelineEvent(id: string, updates: Partial<TimelineEvent>): Promise<TimelineEvent> {
-    return databaseService.timeline.updateTimelineEvent(id, updates);
-  }
-
-  async deleteTimelineEvent(id: string): Promise<void> {
-    return databaseService.timeline.deleteTimelineEvent(id);
-  }
   // Chat operations
   async getChatSessions(userId?: string): Promise<ChatSession[]> {
     return databaseService.chat.getChatSessions(userId);

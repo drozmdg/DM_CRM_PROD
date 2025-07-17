@@ -1,0 +1,338 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # Job 1: CodeQL Analysis
+  codeql-analysis:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'typescript' ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: +security-and-quality
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd client && npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"
+
+  # Job 2: Container Security Scanning
+  container-security:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image for scanning
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: sales-dashboard-backend:security-scan
+          load: true
+
+      - name: Build frontend image for scanning
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.frontend
+          push: false
+          tags: sales-dashboard-frontend:security-scan
+          load: true
+
+      - name: Run Trivy vulnerability scanner - Backend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'sales-dashboard-backend:security-scan'
+          format: 'sarif'
+          output: 'backend-security-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Run Trivy vulnerability scanner - Frontend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'sales-dashboard-frontend:security-scan'
+          format: 'sarif'
+          output: 'frontend-security-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload backend security scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'backend-security-results.sarif'
+          category: 'backend-container-security'
+
+      - name: Upload frontend security scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'frontend-security-results.sarif'
+          category: 'frontend-container-security'
+
+  # Job 3: Dependency Security Audit
+  dependency-security:
+    name: Dependency Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd client && npm ci
+
+      - name: Run npm audit - Backend
+        run: |
+          npm audit --audit-level=moderate --json > backend-audit.json || true
+          cat backend-audit.json
+
+      - name: Run npm audit - Frontend
+        run: |
+          cd client
+          npm audit --audit-level=moderate --json > frontend-audit.json || true
+          cat frontend-audit.json
+
+      - name: Check for high severity vulnerabilities
+        run: |
+          # Check if any high/critical vulnerabilities exist
+          BACKEND_HIGH=$(cat backend-audit.json | jq '.metadata.vulnerabilities.high // 0')
+          BACKEND_CRITICAL=$(cat backend-audit.json | jq '.metadata.vulnerabilities.critical // 0')
+          FRONTEND_HIGH=$(cat client/frontend-audit.json | jq '.metadata.vulnerabilities.high // 0')
+          FRONTEND_CRITICAL=$(cat client/frontend-audit.json | jq '.metadata.vulnerabilities.critical // 0')
+          
+          echo "Backend High: $BACKEND_HIGH, Critical: $BACKEND_CRITICAL"
+          echo "Frontend High: $FRONTEND_HIGH, Critical: $FRONTEND_CRITICAL"
+          
+          # Fail if critical vulnerabilities found
+          if [ "$BACKEND_CRITICAL" -gt 0 ] || [ "$FRONTEND_CRITICAL" -gt 0 ]; then
+            echo "❌ Critical vulnerabilities found - failing build"
+            exit 1
+          fi
+          
+          # Warn if high vulnerabilities found
+          if [ "$BACKEND_HIGH" -gt 0 ] || [ "$FRONTEND_HIGH" -gt 0 ]; then
+            echo "⚠️ High severity vulnerabilities found - consider fixing"
+          fi
+
+      - name: Upload audit results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-audit-results
+          path: |
+            backend-audit.json
+            client/frontend-audit.json
+          retention-days: 30
+
+  # Job 4: Secrets Detection
+  secrets-detection:
+    name: Secrets Detection
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run TruffleHog secret scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+      - name: Run GitLeaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  # Job 5: Infrastructure Security
+  infrastructure-security:
+    name: Infrastructure Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Hadolint - Dockerfile security
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          format: sarif
+          output-file: hadolint-backend-results.sarif
+
+      - name: Run Hadolint - Frontend Dockerfile security
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile.frontend
+          format: sarif
+          output-file: hadolint-frontend-results.sarif
+
+      - name: Upload Hadolint scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: hadolint-backend-results.sarif
+          category: 'dockerfile-security'
+
+      - name: Check Docker Compose security
+        run: |
+          echo "🔍 Checking Docker Compose configuration security..."
+          
+          # Check for security issues in compose files
+          docker-compose -f docker-compose.yml config > /dev/null
+          docker-compose -f docker-compose.prod.yml config > /dev/null
+          
+          # Check for exposed secrets in compose files
+          if grep -r "password.*:" docker-compose*.yml; then
+            echo "⚠️ Potential password exposure in compose files"
+          fi
+          
+          # Verify health checks are configured
+          if ! grep -q "healthcheck:" docker-compose.prod.yml; then
+            echo "⚠️ Missing health checks in production compose"
+          fi
+          
+          echo "✅ Docker Compose security check completed"
+
+  # Job 6: License Compliance
+  license-compliance:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install license checker
+        run: npm install -g license-checker
+
+      - name: Check backend licenses
+        run: |
+          npm ci
+          license-checker --summary --onlyAllow "MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD" --excludePrivatePackages > backend-licenses.txt || true
+          cat backend-licenses.txt
+
+      - name: Check frontend licenses
+        run: |
+          cd client
+          npm ci
+          license-checker --summary --onlyAllow "MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD" --excludePrivatePackages > frontend-licenses.txt || true
+          cat frontend-licenses.txt
+
+      - name: Upload license reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-compliance-reports
+          path: |
+            backend-licenses.txt
+            client/frontend-licenses.txt
+          retention-days: 30
+
+  # Job 7: Security Report Summary
+  security-summary:
+    name: Security Summary Report
+    runs-on: ubuntu-latest
+    needs: [codeql-analysis, container-security, dependency-security, secrets-detection, infrastructure-security, license-compliance]
+    if: always()
+
+    steps:
+      - name: Generate security summary
+        run: |
+          echo "## 🔒 Security Scanning Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Check | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| CodeQL Analysis | ${{ needs.codeql-analysis.result }} | Static code analysis for security vulnerabilities |" >> $GITHUB_STEP_SUMMARY
+          echo "| Container Security | ${{ needs.container-security.result }} | Docker image vulnerability scanning |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Audit | ${{ needs.dependency-security.result }} | NPM package vulnerability check |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secrets Detection | ${{ needs.secrets-detection.result }} | Scanning for exposed secrets |" >> $GITHUB_STEP_SUMMARY
+          echo "| Infrastructure Security | ${{ needs.infrastructure-security.result }} | Dockerfile and compose security |" >> $GITHUB_STEP_SUMMARY
+          echo "| License Compliance | ${{ needs.license-compliance.result }} | Open source license validation |" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Security Status" >> $GITHUB_STEP_SUMMARY
+          
+          FAILED_JOBS=0
+          if [ "${{ needs.codeql-analysis.result }}" = "failure" ]; then FAILED_JOBS=$((FAILED_JOBS+1)); fi
+          if [ "${{ needs.container-security.result }}" = "failure" ]; then FAILED_JOBS=$((FAILED_JOBS+1)); fi
+          if [ "${{ needs.dependency-security.result }}" = "failure" ]; then FAILED_JOBS=$((FAILED_JOBS+1)); fi
+          if [ "${{ needs.secrets-detection.result }}" = "failure" ]; then FAILED_JOBS=$((FAILED_JOBS+1)); fi
+          if [ "${{ needs.infrastructure-security.result }}" = "failure" ]; then FAILED_JOBS=$((FAILED_JOBS+1)); fi
+          if [ "${{ needs.license-compliance.result }}" = "failure" ]; then FAILED_JOBS=$((FAILED_JOBS+1)); fi
+          
+          if [ "$FAILED_JOBS" -eq 0 ]; then
+            echo "✅ **All security checks passed**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **$FAILED_JOBS security check(s) failed - review required**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📋 **View detailed results in the Security tab**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Security workflow notification
+        if: failure()
+        run: |
+          echo "🚨 Security scanning detected issues that require attention"
+          echo "Please review the security findings in the GitHub Security tab"

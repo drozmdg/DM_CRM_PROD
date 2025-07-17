@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Separator } from './ui/separator';
@@ -29,6 +29,7 @@ import {
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
 import DocumentUpload from './DocumentUpload';
+import DocumentViewer from './DocumentViewer';
 
 interface ProcessDocumentManagerProps {
   processId: string;
@@ -48,6 +49,8 @@ export default function ProcessDocumentManager({
   const [searchQuery, setSearchQuery] = useState('');
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showAttachDialog, setShowAttachDialog] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [showViewer, setShowViewer] = useState(false);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -223,7 +226,10 @@ export default function ProcessDocumentManager({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => window.open(document.url, '_blank')}
+                  onClick={() => {
+                    setSelectedDocument(document);
+                    setShowViewer(true);
+                  }}
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -384,11 +390,21 @@ export default function ProcessDocumentManager({
                   <DocumentUpload
                     customerId={customerId}
                     processId={processId}
-                    onSuccess={() => {
+                    standalone={true}
+                    onClose={() => setShowUploadDialog(false)}
+                    onUploadComplete={() => {
                       setShowUploadDialog(false);
                       refetch();
                     }}
                   />
+                  <DialogFooter>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowUploadDialog(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </DialogFooter>
                 </DialogContent>
               </Dialog>
             </div>
@@ -442,6 +458,17 @@ export default function ProcessDocumentManager({
           ))
         )}
       </div>
+
+      {/* Document Viewer Modal */}
+      {showViewer && selectedDocument && (
+        <DocumentViewer
+          document={selectedDocument}
+          onClose={() => {
+            setShowViewer(false);
+            setSelectedDocument(null);
+          }}
+        />
+      )}
     </div>
   );
 }

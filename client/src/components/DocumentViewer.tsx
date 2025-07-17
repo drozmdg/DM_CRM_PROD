@@ -12,9 +12,16 @@ import {
   FileVideo, 
   FileAudio,
   Archive,
-  File
+  File,
+  FileSpreadsheet,
+  Code
 } from 'lucide-react';
 import { format } from 'date-fns';
+import WordViewer from './viewers/WordViewer';
+import ExcelViewer from './viewers/ExcelViewer';
+import CsvViewer from './viewers/CsvViewer';
+import CodeViewer from './viewers/CodeViewer';
+import { getFileType as getParserFileType } from '../lib/fileParser';
 
 // Extended Document interface to include database fields
 interface ExtendedDocument extends Document {
@@ -37,30 +44,46 @@ export default function DocumentViewer({ document, onClose }: DocumentViewerProp
     
     switch (extension) {
       case 'pdf':
+        return <FileText className="h-6 w-6 text-red-600" />;
       case 'doc':
       case 'docx':
+        return <FileText className="h-6 w-6 text-blue-600" />;
+      case 'xlsx':
+      case 'xls':
+        return <FileSpreadsheet className="h-6 w-6 text-green-600" />;
+      case 'csv':
+        return <FileSpreadsheet className="h-6 w-6 text-blue-500" />;
       case 'txt':
-        return <FileText className="h-6 w-6" />;
+      case 'sql':
+      case 'md':
+      case 'json':
+      case 'xml':
+      case 'js':
+      case 'ts':
+      case 'py':
+      case 'css':
+      case 'html':
+        return <Code className="h-6 w-6 text-purple-600" />;
       case 'jpg':
       case 'jpeg':
       case 'png':
       case 'gif':
       case 'bmp':
       case 'svg':
-        return <Image className="h-6 w-6" />;
+        return <Image className="h-6 w-6 text-pink-600" />;
       case 'mp4':
       case 'avi':
       case 'mov':
       case 'wmv':
-        return <FileVideo className="h-6 w-6" />;
+        return <FileVideo className="h-6 w-6 text-orange-600" />;
       case 'mp3':
       case 'wav':
       case 'aac':
-        return <FileAudio className="h-6 w-6" />;
+        return <FileAudio className="h-6 w-6 text-purple-500" />;
       case 'zip':
       case 'rar':
       case '7z':
-        return <Archive className="h-6 w-6" />;
+        return <Archive className="h-6 w-6 text-yellow-600" />;
       default:
         return <File className="h-6 w-6" />;
     }
@@ -78,7 +101,11 @@ export default function DocumentViewer({ document, onClose }: DocumentViewerProp
 
   const canPreview = (filename: string) => {
     const extension = filename.toLowerCase().split('.').pop();
-    return ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'txt'].includes(extension || '');
+    return [
+      'pdf', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', // Original supported formats
+      'doc', 'docx', 'xlsx', 'xls', 'csv', // Office documents
+      'txt', 'sql', 'md', 'json', 'xml', 'js', 'ts', 'py', 'css', 'html', 'yaml', 'yml' // Text/code files
+    ].includes(extension || '');
   };
 
   const handleDownload = async () => {
@@ -115,7 +142,7 @@ export default function DocumentViewer({ document, onClose }: DocumentViewerProp
     return colors[category as keyof typeof colors] || colors.Other;
   };
   const renderPreview = () => {
-    const fileType = getFileType(document.name);
+    const parsedFileType = getParserFileType(document.name);
     
     if (!canPreview(document.name)) {
       return (
@@ -131,7 +158,21 @@ export default function DocumentViewer({ document, onClose }: DocumentViewerProp
       );
     }
 
-    switch (fileType) {      case 'image':
+    // Use new viewer components for supported file types
+    switch (parsedFileType) {
+      case 'word':
+        return <WordViewer url={document.url} filename={document.name} />;
+        
+      case 'excel':
+        return <ExcelViewer url={document.url} filename={document.name} />;
+        
+      case 'csv':
+        return <CsvViewer url={document.url} filename={document.name} />;
+        
+      case 'text':
+        return <CodeViewer url={document.url} filename={document.name} />;
+        
+      case 'image':
         return (
           <div className="flex justify-center bg-muted rounded-lg p-4">
             <img
@@ -149,7 +190,8 @@ export default function DocumentViewer({ document, onClose }: DocumentViewerProp
             </div>
           </div>
         );
-        case 'document':
+        
+      case 'document':
         if (document.name.toLowerCase().endsWith('.pdf')) {
           return (
             <div className="h-96 bg-muted rounded-lg">
@@ -170,7 +212,8 @@ export default function DocumentViewer({ document, onClose }: DocumentViewerProp
             </p>
           </div>
         );
-        default:
+        
+      default:
         return (
           <div className="flex flex-col items-center justify-center h-96 bg-muted rounded-lg">
             {getFileIcon(document.name)}

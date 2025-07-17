@@ -7,12 +7,14 @@ import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
 import { Separator } from './ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import DocumentViewer from './DocumentViewer';
+import DocumentUpload from './DocumentUpload';
 import { 
   FileText, 
   Download, 
@@ -91,6 +93,8 @@ export default function CustomerDocumentManager({
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'category' | 'size'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [selectedDocument, setSelectedDocument] = useState<CustomerDocument | null>(null);
+  const [showViewer, setShowViewer] = useState(false);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -223,8 +227,8 @@ export default function CustomerDocumentManager({
   };
 
   const handleDocumentView = (document: CustomerDocument) => {
-    // Implementation for viewing document
-    window.open(document.url, '_blank');
+    setSelectedDocument(document);
+    setShowViewer(true);
   };
 
   const handleDocumentDownload = async (document: CustomerDocument) => {
@@ -288,13 +292,23 @@ export default function CustomerDocumentManager({
                 <DialogHeader>
                   <DialogTitle>Upload Document</DialogTitle>
                 </DialogHeader>
-                <DocumentUploadForm 
+                <DocumentUpload
                   customerId={customerId}
-                  onSuccess={() => {
+                  standalone={true}
+                  onClose={() => setShowUploadDialog(false)}
+                  onUploadComplete={() => {
                     setShowUploadDialog(false);
                     refetch();
                   }}
                 />
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowUploadDialog(false)}
+                  >
+                    Cancel
+                  </Button>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           )}
@@ -514,6 +528,17 @@ export default function CustomerDocumentManager({
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Document Viewer Modal */}
+      {showViewer && selectedDocument && (
+        <DocumentViewer
+          document={selectedDocument}
+          onClose={() => {
+            setShowViewer(false);
+            setSelectedDocument(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -682,225 +707,3 @@ function DocumentCard({
   );
 }
 
-// Enhanced Document Upload Form Component
-interface DocumentUploadFormProps {
-  customerId: string;
-  onSuccess: () => void;
-}
-
-function DocumentUploadForm({ customerId, onSuccess }: DocumentUploadFormProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    category: 'Other' as DocumentCategory,
-    access_level: 'customer' as 'private' | 'team' | 'customer' | 'public',
-    tags: [] as string[],
-    version_notes: ''
-  });
-  const [tagInput, setTagInput] = useState('');
-  const [uploading, setUploading] = useState(false);
-
-  const { toast } = useToast();
-
-  const handleFileSelect = (selectedFile: File) => {
-    setFile(selectedFile);
-    if (!formData.name) {
-      setFormData(prev => ({
-        ...prev,
-        name: selectedFile.name.replace(/\.[^/.]+$/, "")
-      }));
-    }
-  };
-
-  const handleAddTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, tagInput.trim()]
-      }));
-      setTagInput('');
-    }
-  };
-
-  const handleRemoveTag = (tag: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(t => t !== tag)
-    }));
-  };
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      // Format data to match the API schema (same as DocumentUpload.tsx)
-      const uploadData = {
-        name: formData.name,
-        description: formData.description || "",
-        url: `http://localhost:5000/uploads/${file.name}`, // Mock URL for now
-        type: file.type,
-        category: formData.category,
-        size: file.size,
-        customerId,
-      };
-
-      await apiRequest('POST', '/api/documents', uploadData);
-      
-      toast({
-        title: "Success",
-        description: "Document uploaded successfully",
-      });
-      onSuccess();
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to upload document",
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="file">Select File</Label>
-        <Input
-          id="file"
-          type="file"
-          onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="name">Document Name</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          rows={3}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="category">Category</Label>
-          <Select
-            value={formData.category}
-            onValueChange={(value: DocumentCategory) => setFormData(prev => ({ ...prev, category: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DOCUMENT_CATEGORIES.map(category => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label htmlFor="access-level">Access Level</Label>
-          <Select
-            value={formData.access_level}
-            onValueChange={(value: any) => setFormData(prev => ({ ...prev, access_level: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ACCESS_LEVELS.map(level => (
-                <SelectItem key={level.value} value={level.value}>
-                  <div>
-                    <div className="font-medium">{level.label}</div>
-                    <div className="text-xs text-muted-foreground">{level.description}</div>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="tags">Tags</Label>
-        <div className="flex items-center space-x-2">
-          <Input
-            id="tags"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            placeholder="Add tags..."
-            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-          />
-          <Button type="button" onClick={handleAddTag} size="sm">
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-        {formData.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {formData.tags.map(tag => (
-              <Badge key={tag} variant="outline" className="text-xs">
-                <Tag className="mr-1 h-2 w-2" />
-                {tag}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="ml-1 h-3 w-3 p-0"
-                  onClick={() => handleRemoveTag(tag)}
-                >
-                  ×
-                </Button>
-              </Badge>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="version-notes">Version Notes</Label>
-        <Textarea
-          id="version-notes"
-          value={formData.version_notes}
-          onChange={(e) => setFormData(prev => ({ ...prev, version_notes: e.target.value }))}
-          placeholder="Describe what's new in this version..."
-          rows={2}
-        />
-      </div>
-
-      <div className="flex justify-end space-x-2">
-        <Button type="submit" disabled={uploading || !file}>
-          {uploading ? (
-            <>
-              <Clock className="mr-2 h-4 w-4 animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            <>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Document
-            </>
-          )}
-        </Button>
-      </div>
-    </form>
-  );
-}

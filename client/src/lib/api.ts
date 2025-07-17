@@ -218,3 +218,58 @@ export const dashboardApi = {
     return response.json();
   },
 };
+
+// Customer Notes API
+export const customerNotesApi = {
+  getAll: async (customerId: string) => {
+    const response = await apiRequest("GET", `/api/customers/${customerId}/notes`);
+    return response.json();
+  },
+  
+  create: async (customerId: string, noteContent: string) => {
+    const response = await apiRequest("POST", `/api/customers/${customerId}/notes`, { noteContent });
+    return response.json();
+  },
+  
+  update: async (id: string, noteContent: string) => {
+    const response = await apiRequest("PUT", `/api/customers/notes/${id}`, { noteContent });
+    return response.json();
+  },
+  
+  delete: async (id: string) => {
+    await apiRequest("DELETE", `/api/customers/notes/${id}`);
+  },
+};
+
+// Important Dates API
+export const importantDatesApi = {
+  getAll: async (customerId: string) => {
+    const response = await apiRequest("GET", `/api/customers/${customerId}/important-dates`);
+    return response.json();
+  },
+  
+  create: async (customerId: string, description: string, date: string) => {
+    const response = await apiRequest("POST", `/api/customers/${customerId}/important-dates`, { 
+      description, 
+      date 
+    });
+    return response.json();
+  },
+  
+  update: async (id: string, description: string, date: string) => {
+    const response = await apiRequest("PUT", `/api/customers/important-dates/${id}`, { 
+      description, 
+      date 
+    });
+    return response.json();
+  },
+  
+  delete: async (id: string) => {
+    await apiRequest("DELETE", `/api/customers/important-dates/${id}`);
+  },
+  
+  getUpcoming: async (daysAhead: number = 30) => {
+    const response = await apiRequest("GET", `/api/important-dates/upcoming?days=${daysAhead}`);
+    return response.json();
+  },
+};

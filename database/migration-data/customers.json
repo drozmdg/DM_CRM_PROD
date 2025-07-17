@@ -1,0 +1,54 @@
+[
+  {
+    "id": "c-1750085969411",
+    "name": "Beta Pharma Company",
+    "logo": null,
+    "avatar_color": "#1976d2",
+    "phase": "New Activation",
+    "contract_start_date": "2025-05-01",
+    "contract_end_date": "2027-06-01",
+    "created_at": "2025-06-16 14:59:30.632577",
+    "updated_at": "2025-06-24 03:27:12.871",
+    "active": true,
+    "inactivated_at": null
+  },
+  {
+    "id": "c-1750218048117",
+    "name": "Delta Pharma",
+    "logo": null,
+    "avatar_color": "#8080ff",
+    "phase": "Steady State + New Activation",
+    "contract_start_date": "2025-05-01",
+    "contract_end_date": "2027-06-01",
+    "created_at": "2025-06-18 03:40:49.337003",
+    "updated_at": "2025-06-18 03:41:18.614",
+    "active": true,
+    "inactivated_at": null
+  },
+  {
+    "id": "c-1750736426887",
+    "name": "Sigma Pharma",
+    "logo": null,
+    "avatar_color": "#e65a06",
+    "phase": "Steady State",
+    "contract_start_date": "2024-01-01",
+    "contract_end_date": "2026-01-01",
+    "created_at": "2025-06-24 03:40:28.698069",
+    "updated_at": "2025-07-09 01:47:42.51",
+    "active": true,
+    "inactivated_at": null
+  },
+  {
+    "id": "c-1752014848513",
+    "name": "Zeta Science",
+    "logo": null,
+    "avatar_color": "#ff8000",
+    "phase": "New Activation",
+    "contract_start_date": "2025-05-01",
+    "contract_end_date": "2027-09-01",
+    "created_at": "2025-07-08 22:47:30.203304",
+    "updated_at": "2025-07-08 22:52:48.316",
+    "active": true,
+    "inactivated_at": null
+  }
+]

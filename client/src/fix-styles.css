@@ -1,0 +1,62 @@
+/* Fix for bg-muted and related classes */
+.bg-muted {
+  background-color: #f9fafb !important;
+}
+.bg-muted\/50 {
+  background-color: rgba(249, 250, 251, 0.5) !important;
+}
+.hover\:bg-muted:hover {
+  background-color: #f9fafb !important;
+}
+.hover\:bg-muted\/50:hover {
+  background-color: rgba(249, 250, 251, 0.5) !important;
+}
+.data-\[state\=selected\]\:bg-muted[data-state="selected"] {
+  background-color: #f9fafb !important;
+}
+.text-muted-foreground {
+  color: #71717a !important;
+}
+.hover\:text-muted-foreground:hover {
+  color: #71717a !important;
+}
+.bg-background {
+  background-color: #ffffff !important;
+}
+.bg-card {
+  background-color: #ffffff !important;
+}
+.bg-primary {
+  background-color: #1976D2 !important;
+}
+.text-primary {
+  color: #1976D2 !important;
+}
+.bg-primary\/10 {
+  background-color: rgba(25, 118, 210, 0.1) !important;
+}
+.border-border {
+  border-color: #e4e4e7 !important;
+}
+/* Additional shadcn-ui classes */
+.border-input {
+  border-color: #e4e4e7 !important;
+}
+.text-foreground {
+  color: #0A0A0B !important;
+}
+.text-accent-foreground {
+  color: #F8FAFC !important;
+}
+.bg-accent {
+  background-color: #FF6B35 !important;
+}
+.ring-offset-background {
+  --tw-ring-offset-color: #ffffff !important;
+}
+.focus-visible\:ring-ring:focus-visible {
+  --tw-ring-color: #1976D2 !important;
+}
+.focus-visible\:ring-offset-2:focus-visible {
+  --tw-ring-offset-width: 2px !important;
+}

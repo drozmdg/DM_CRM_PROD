@@ -28,7 +28,6 @@ import {
   Shield,
   Globe,
   Building,
-  Team,
   AlertCircle,
   CheckCircle,
   X,
@@ -73,7 +72,7 @@ const ACCESS_LEVELS = [
 
 const SHARE_TYPES = [
   { value: 'user', label: 'Internal User', icon: Users, description: 'Share with someone in your organization' },
-  { value: 'team', label: 'Team', icon: Team, description: 'Share with an entire team' },
+  { value: 'team', label: 'Team', icon: Users, description: 'Share with an entire team' },
   { value: 'customer', label: 'Customer', icon: Building, description: 'Share with customer contacts' },
   { value: 'external', label: 'External Email', icon: Mail, description: 'Share with external email address' }
 ] as const;

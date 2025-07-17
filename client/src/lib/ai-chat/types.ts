@@ -37,6 +37,15 @@ export interface OllamaModelInfo {
  */
 export interface CRMData {
   customers?: any[];
+  processes?: any[];
+  teams?: any[];
+  services?: any[];
+  products?: any[];
+  contacts?: any[];
+  documents?: any[];
+  notes?: any[];
+  tasks?: any[];
+  importantDates?: any[];
   [key: string]: any;
 }
 

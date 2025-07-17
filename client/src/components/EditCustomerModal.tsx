@@ -58,10 +58,10 @@ export default function EditCustomerModal({ customer, open, onClose, onSuccess }
     mutationFn: async (data: any) => {
       const response = await apiRequest("PUT", `/api/customers/${customer.id}`, data);
       return response.json();
-    },
-    onSuccess: () => {
+    },    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/customers", customer.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers?includeInactive=true"] });
       toast({
         title: "Success",
         description: "Customer updated successfully",

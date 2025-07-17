@@ -1,33 +1,39 @@
-import { useState } from "react";
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
+import { useApiClient } from '@/lib/authenticatedApiClient';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import ServiceModal from "@/components/ServiceModal";
 import CustomerModal from "@/components/CustomerModal";
 import ProcessModal from "@/components/ProcessModal";
 import DocumentUpload from "@/components/DocumentUpload";
+import StatusBadge from "@/components/StatusBadge";
+import SDLCStageBadge from "@/components/SDLCStageBadge";
 import { 
   Users, 
-  Settings, 
   FileText, 
-  UserPlus, 
+  Calendar, 
+  Settings, 
   Plus, 
-  Bot, 
+  CheckCircle,
+  TrendingUp,
+  Activity,
+  Clock,
+  BarChart3,
+  UserPlus,
+  Bot,
   Upload,
   Eye,
-  Edit,
-  TrendingUp,
-  Clock,
-  CheckCircle,
-  Calendar
+  Edit
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { format } from "date-fns";
 
 export default function Dashboard() {
+  console.log('🚀🚀🚀 FULL DASHBOARD COMPONENT LOADED - NO DATE-FNS!!!');
   const [, setLocation] = useLocation();
+  const apiClient = useApiClient();
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
@@ -35,52 +41,32 @@ export default function Dashboard() {
   const [isDocumentUploadOpen, setIsDocumentUploadOpen] = useState(false);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  
-  // Add simple test to see if component loads
-  console.log("Dashboard component is rendering");
 
-  const { data: metrics, isLoading: metricsLoading, error: metricsError } = useQuery({
+  const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ["/api/dashboard/metrics"],
     queryFn: async () => {
-      const response = await fetch("/api/dashboard/metrics", { credentials: "include" });
-      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
-      return response.json();
+      return await apiClient.get('/dashboard/metrics');
     },
   });
 
-  const { data: customers, isLoading: customersLoading, error: customersError } = useQuery({
+  const { data: customers, isLoading: customersLoading } = useQuery({
     queryKey: ["/api/customers"],
     queryFn: async () => {
-      const response = await fetch("/api/customers", { credentials: "include" });
-      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
-      return response.json();
+      return await apiClient.get('/customers');
     },
   });
 
-  const { data: processes, isLoading: processesLoading, error: processesError } = useQuery({
+  const { data: processes, isLoading: processesLoading } = useQuery({
     queryKey: ["/api/processes"],
     queryFn: async () => {
-      const response = await fetch("/api/processes", { credentials: "include" });
-      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
-      return response.json();
+      return await apiClient.get('/processes');
     },
   });
 
-  const { data: timelineEvents, isLoading: timelineLoading, error: timelineError } = useQuery({
-    queryKey: ["/api/timeline"],
-    queryFn: async () => {
-      const response = await fetch("/api/timeline", { credentials: "include" });
-      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
-      return response.json();
-    },
-  });
-
-  console.log("Dashboard data:", { metrics, customers, processes, timelineEvents });
-  console.log("Dashboard loading states:", { metricsLoading, customersLoading, processesLoading, timelineLoading });
-  console.log("Dashboard errors:", { metricsError, customersError, processesError, timelineError });
+  console.log('FULL DASHBOARD DATA:', { metrics, customers: customers?.length, processes: processes?.length });
 
   // Show loading state
-  if (metricsLoading || customersLoading || processesLoading || timelineLoading) {
+  if (metricsLoading || customersLoading || processesLoading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
@@ -98,18 +84,6 @@ export default function Dashboard() {
     );
   }
 
-  // Show error state
-  if (metricsError || customersError || processesError || timelineError) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-neutral-800 mb-2">Dashboard Overview</h2>
-          <p className="text-red-600">Error loading dashboard data. Please refresh the page.</p>
-        </div>
-      </div>
-    );
-  }
-
   const recentCustomers = (customers as any)?.slice(0, 4) || [];
   
   // Apply sorting to active processes
@@ -122,24 +96,20 @@ export default function Dashboard() {
       
       // Handle special cases for sorting
       if (sortField === 'customerId') {
-        // Sort by customer name instead of ID
         const aCustomer = customers?.find((c: any) => c.id === a.customerId);
         const bCustomer = customers?.find((c: any) => c.id === b.customerId);
         aValue = aCustomer?.name || '';
         bValue = bCustomer?.name || '';
       } else if (sortField === 'dueDate') {
-        // Convert dates for proper comparison
         aValue = a.dueDate ? new Date(a.dueDate).getTime() : 0;
         bValue = b.dueDate ? new Date(b.dueDate).getTime() : 0;
       }
       
-      // Compare values based on their types
       if (typeof aValue === 'string' && typeof bValue === 'string') {
         return sortDirection === 'asc' 
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       } else {
-        // For numbers and dates
         return sortDirection === 'asc'
           ? (aValue || 0) - (bValue || 0)
           : (bValue || 0) - (aValue || 0);
@@ -148,31 +118,9 @@ export default function Dashboard() {
   }
   
   const activeProcesses = filteredProcesses.slice(0, 5);
-  const recentActivity = (timelineEvents as any)?.slice(0, 4) || [];
 
   const getCustomerInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "In Progress": return "bg-warning text-warning-foreground";
-      case "Completed": return "bg-success text-success-foreground";
-      case "Not Started": return "bg-muted text-muted-foreground";
-      default: return "bg-muted text-muted-foreground";
-    }
-  };
-
-  const getSDLCStageColor = (stage: string) => {
-    switch (stage) {
-      case "Requirements": return "bg-muted text-muted-foreground";
-      case "Design": return "bg-primary/10 text-primary";
-      case "Development": return "bg-primary text-primary-foreground";
-      case "Testing": return "bg-warning/10 text-warning";
-      case "Deployment": return "bg-success/10 text-success";
-      case "Maintenance": return "bg-success text-success-foreground";
-      default: return "bg-muted text-muted-foreground";
-    }
   };
 
   const getPhaseColor = (phase: string) => {
@@ -181,18 +129,16 @@ export default function Dashboard() {
       case "Steady State": return "bg-primary/10 text-primary";
       case "Contracting": return "bg-warning/10 text-warning";
       case "Pending Termination": return "bg-destructive/10 text-destructive";
-      case "Terminated": return "bg-muted text-muted-foreground";
-      default: return "bg-muted text-muted-foreground";
+      case "Terminated": return "bg-gray-100 text-gray-600";
+      default: return "bg-gray-100 text-gray-600";
     }
   };
   
   // Handler for table header clicks to toggle sorting
   const handleSort = (field: string) => {
     if (sortField === field) {
-      // Toggle direction if same field is clicked
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      // Set new field and default to ascending
       setSortField(field);
       setSortDirection('asc');
     }
@@ -399,42 +345,27 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Activity Feed Card */}
+        {/* Upcoming Tasks Card */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-neutral-800">Recent Activity</h3>
+              <h3 className="text-lg font-semibold text-neutral-800">Upcoming Tasks</h3>
               <Button 
                 variant="link" 
                 size="sm" 
                 className="text-primary"
-                onClick={() => setLocation('/timeline')}
+                onClick={() => setLocation('/processes')}
               >
                 View All
               </Button>
             </div>
             
-            <div className="space-y-4">
-              {recentActivity && recentActivity.length > 0 ? (
-                recentActivity.map((activity: any) => (
-                  <div key={activity.id} className="flex space-x-3">
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Plus className="text-primary" size={12} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-neutral-800">{activity.title}</p>
-                      <p className="text-xs text-neutral-600 mt-1">
-                        {activity.date && format(new Date(activity.date), "MMM d, yyyy")}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-6">
-                  <Clock className="w-8 h-8 text-neutral-400 mx-auto mb-3" />
-                  <p className="text-sm text-neutral-600">No recent activity found</p>
-                </div>
-              )}
+            <div className="space-y-3">
+              <div className="text-center py-6">
+                <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-3" />
+                <p className="text-sm text-neutral-600">No upcoming tasks</p>
+                <p className="text-xs text-neutral-500 mt-1">You're all caught up!</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -552,20 +483,23 @@ export default function Dashboard() {
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        <Badge variant="outline" className={getStatusColor(process.status)}>
-                          {process.status}
-                        </Badge>
+                        <StatusBadge status={process.status} />
                       </td>
                       <td className="py-4 px-4">
-                        <Badge variant="outline" className={getSDLCStageColor(process.sdlcStage)}>
-                          {process.sdlcStage}
-                        </Badge>
+                        <SDLCStageBadge stage={process.sdlcStage} />
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center space-x-2">
                           <Calendar className="text-neutral-400" size={16} />
                           <span className="text-sm text-neutral-600">
-                            {process.dueDate ? format(new Date(process.dueDate), "MMM d, yyyy") : 'No due date'}
+                            {process.dueDate ? (() => {
+                              try {
+                                const date = new Date(process.dueDate);
+                                return isNaN(date.getTime()) ? 'No due date' : date.toLocaleDateString();
+                              } catch (error) {
+                                return 'Invalid date';
+                              }
+                            })() : 'No due date'}
                           </span>
                         </div>
                       </td>

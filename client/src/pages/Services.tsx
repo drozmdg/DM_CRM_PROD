@@ -7,20 +7,25 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, Plus, Eye, Edit, Clock, Building, Settings, User } from "lucide-react";
 import ServiceModal from "@/components/ServiceModal";
 import { serviceApi, customerApi } from "@/lib/api";
+import CustomerPhaseBadge from "@/components/CustomerPhaseBadge";
+import ServiceStatusBadge from "@/components/ServiceStatusBadge";
+import CustomerActivityBadge from "@/components/CustomerActivityBadge";
+import { useApiClient } from "@/lib/authenticatedApiClient";
 
 export default function Services() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+  const apiClient = useApiClient();
 
   const { data: services, isLoading } = useQuery({
     queryKey: ["/api/services"],
-    queryFn: () => serviceApi.getAll(),
+    queryFn: () => apiClient.get('/services'),
   });
 
   const { data: customers } = useQuery({
     queryKey: ["/api/customers"],
-    queryFn: () => customerApi.getAll(),
+    queryFn: () => apiClient.get('/customers'),
   });
 
   // Group services by customer
@@ -152,13 +157,9 @@ export default function Services() {
                         {customerData.customer.name}
                       </h3>
                       <div className="flex items-center space-x-2">
-                        <Badge variant="outline" className="text-xs">
-                          {customerData.customer.phase}
-                        </Badge>
+                        <CustomerPhaseBadge phase={customerData.customer.phase} />
                         {customerData.customer.active === false && (
-                          <Badge variant="outline" className="text-xs bg-neutral-100 text-neutral-600">
-                            Inactive
-                          </Badge>
+                          <CustomerActivityBadge isActive={false} />
                         )}
                       </div>
                     </div>
@@ -203,12 +204,7 @@ export default function Services() {
                         </div>
                         
                         <div className="flex items-center space-x-2">
-                          <Badge 
-                            variant="outline" 
-                            className={service.monthlyHours > 0 ? "bg-success/10 text-success border-success/20" : "bg-neutral/10 text-neutral-600"}
-                          >
-                            {service.monthlyHours > 0 ? "Active" : "Inactive"}
-                          </Badge>
+                          <ServiceStatusBadge isActive={service.monthlyHours > 0} />
                           <Button 
                             variant="ghost" 
                             size="sm"

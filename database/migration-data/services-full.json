@@ -1,0 +1,82 @@
+[
+  {
+    "id": "0c1c3853-3ca0-47fb-8c47-8082ed7f9c36",
+    "customer_id": "c-1752014848513",
+    "name": "CRM",
+    "monthly_hours": 10,
+    "created_at": "2025-07-08 22:51:34.722",
+    "updated_at": "2025-07-08 22:51:34.722"
+  },
+  {
+    "id": "3b8a3c49-6b38-40a4-a8a7-4563a764bbb2",
+    "customer_id": "c-1750736426887",
+    "name": "CRM Dashboards",
+    "monthly_hours": 10,
+    "created_at": "2025-06-24 03:50:12.793",
+    "updated_at": "2025-06-24 03:50:12.793"
+  },
+  {
+    "id": "612801d6-f347-42ff-b915-9e4d1528e3d7",
+    "customer_id": "c-1750736426887",
+    "name": "Data Management",
+    "monthly_hours": 10,
+    "created_at": "2025-06-24 03:49:52.721",
+    "updated_at": "2025-06-24 03:49:52.721"
+  },
+  {
+    "id": "7940b5bf-1060-49a3-8fb9-8a2b58c15066",
+    "customer_id": "c-1750085969411",
+    "name": "Data Management",
+    "monthly_hours": 25,
+    "created_at": "2025-06-17 17:01:48.318",
+    "updated_at": "2025-06-17 17:01:48.318"
+  },
+  {
+    "id": "80e782cd-88c6-48f8-bbe6-41a01a0eab04",
+    "customer_id": "c-1750085969411",
+    "name": "Dashboard - Gold",
+    "monthly_hours": 25,
+    "created_at": "2025-06-17 17:02:15.725",
+    "updated_at": "2025-06-17 17:02:15.725"
+  },
+  {
+    "id": "9c1f269c-9dc8-448e-a5c2-063565d5c23e",
+    "customer_id": "c-1750218048117",
+    "name": "PowerBI",
+    "monthly_hours": 15,
+    "created_at": "2025-06-18 03:46:48.899",
+    "updated_at": "2025-06-18 03:46:48.899"
+  },
+  {
+    "id": "c157882d-444a-4937-b6a3-b5ae9d8b2a28",
+    "customer_id": "c-1752014848513",
+    "name": "Reporting - Gold ",
+    "monthly_hours": 45,
+    "created_at": "2025-07-08 22:52:01.918",
+    "updated_at": "2025-07-08 22:52:01.918"
+  },
+  {
+    "id": "da0053a2-3018-421e-a629-9fd5854a8747",
+    "customer_id": "c-1752014848513",
+    "name": "Data Management",
+    "monthly_hours": 20,
+    "created_at": "2025-07-08 22:51:47.088",
+    "updated_at": "2025-07-08 22:51:47.088"
+  },
+  {
+    "id": "fc40663c-dfc0-4bc1-a0e1-d4934824e1df",
+    "customer_id": "c-1750218048117",
+    "name": "Data Management",
+    "monthly_hours": 10,
+    "created_at": "2025-06-18 03:46:27.45",
+    "updated_at": "2025-06-18 03:46:27.45"
+  },
+  {
+    "id": "ffec6fb9-464f-4766-af6c-5f126327a2a4",
+    "customer_id": "c-1750085969411",
+    "name": "Consultanting",
+    "monthly_hours": 10,
+    "created_at": "2025-06-18 03:30:08.422",
+    "updated_at": "2025-06-18 03:30:08.422"
+  }
+]

@@ -9,6 +9,7 @@ import {
   integer,
   date,
   boolean,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
@@ -54,14 +55,26 @@ export const customers = pgTable("customers", {
 // Contacts table
 export const contacts = pgTable("contacts", {
   id: text("id").primaryKey(),
-  customerId: text("customer_id").references(() => customers.id).notNull(),
+  customerId: text("customer_id").references(() => customers.id), // Now nullable for Internal contacts
   name: text("name").notNull(),
   title: text("title"),
   email: text("email").notNull(),
   phone: text("phone"),
   role: text("role"),
-  type: text("type").notNull(), // Client, Internal
+  type: text("type").notNull(), // Client, Internal, Vendor, Partner, Consultant, External Stakeholder
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Contact-Customer assignments junction table (for Internal contacts to be assigned to multiple customers)
+export const contactCustomerAssignments = pgTable("contact_customer_assignments", {
+  contactId: text("contact_id").references(() => contacts.id).notNull(),
+  customerId: text("customer_id").references(() => customers.id).notNull(),
+  assignedAt: timestamp("assigned_at").defaultNow(),
+  assignedBy: text("assigned_by"), // Optional: track who made the assignment
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.contactId, table.customerId] }),
+  };
 });
 
 // Teams table
@@ -70,6 +83,8 @@ export const teams = pgTable("teams", {
   name: text("name").notNull(),
   financeCode: text("finance_code").notNull(),
   customerId: text("customer_id").references(() => customers.id).notNull(),
+  startDate: date("start_date"),
+  endDate: date("end_date"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -86,6 +101,7 @@ export const services = pgTable("services", {
 export const processes = pgTable("processes", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  description: text("description"),
   customerId: text("customer_id").references(() => customers.id).notNull(),
   jiraTicket: text("jira_ticket"),
   status: text("status").notNull(), // Not Started, In Progress, Completed
@@ -97,6 +113,12 @@ export const processes = pgTable("processes", {
   functionalArea: text("functional_area"),
   responsibleContactId: text("responsible_contact_id").references(() => contacts.id),
   progress: integer("progress").default(0), // percentage 0-100
+  // TPA (Third-Party Agreement) fields
+  isTpaRequired: boolean("is_tpa_required").default(false),
+  tpaResponsibleContactId: text("tpa_responsible_contact_id").references(() => contacts.id),
+  tpaDataSource: text("tpa_data_source"),
+  tpaStartDate: date("tpa_start_date"),
+  tpaEndDate: date("tpa_end_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -163,6 +185,7 @@ export const customersRelations = relations(customers, ({ many }) => ({
   processes: many(processes),
   documents: many(documents),
   timelineEvents: many(timelineEvents),
+  contactAssignments: many(contactCustomerAssignments),
 }));
 
 export const contactsRelations = relations(contacts, ({ one, many }) => ({
@@ -172,6 +195,7 @@ export const contactsRelations = relations(contacts, ({ one, many }) => ({
   }),
   responsibleProcesses: many(processes),
   communications: many(communications),
+  customerAssignments: many(contactCustomerAssignments),
 }));
 
 export const servicesRelations = relations(services, ({ one }) => ({
@@ -230,6 +254,17 @@ export const communicationsRelations = relations(communications, ({ one }) => ({
   contact: one(contacts, {
     fields: [communications.contactId],
     references: [contacts.id],
+  }),
+}));
+
+export const contactCustomerAssignmentsRelations = relations(contactCustomerAssignments, ({ one }) => ({
+  contact: one(contacts, {
+    fields: [contactCustomerAssignments.contactId],
+    references: [contacts.id],
+  }),
+  customer: one(customers, {
+    fields: [contactCustomerAssignments.customerId],
+    references: [customers.id],
   }),
 }));
 

@@ -50,16 +50,15 @@ export default function CustomerStatusIndicator({
           color: "bg-destructive/10 text-destructive border-destructive/20",
           icon: AlertTriangle,
           description: "Contract ending soon"
-        };
-      case "Terminated":
+        };      case "Terminated":
         return {
-          color: "bg-muted text-muted-foreground border-muted/20",
+          color: "bg-gray-100 text-gray-600 border-gray-200",
           icon: XCircle,
           description: "Relationship ended"
         };
       default:
         return {
-          color: "bg-muted text-muted-foreground border-muted/20",
+          color: "bg-gray-100 text-gray-600 border-gray-200",
           icon: Pause,
           description: "Unknown status"
         };

@@ -1,0 +1,176 @@
+{
+  "exportDate": "2025-07-16T19:16:32.785Z",
+  "supabaseUrl": "https://tavkgymcjrrobjircogi.supabase.co",
+  "tables": [
+    {
+      "tableName": "users",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "roles",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "user_roles",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "customers",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "contacts",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "contact_customer_assignments",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "teams",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "pharmaceutical_products",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "services",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "processes",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "process_tasks",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "process_milestones",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "process_team",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "process_file_transfers",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "process_notifications",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "documents",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "timeline_events",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "customer_notes",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "customer_important_dates",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "ai_chat_sessions",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "ai_chat_messages",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "communications",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "user_sessions",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    },
+    {
+      "tableName": "audit_logs",
+      "data": [],
+      "rowCount": 0,
+      "error": "Invalid API key"
+    }
+  ],
+  "data": {
+    "users": [],
+    "roles": [],
+    "user_roles": [],
+    "customers": [],
+    "contacts": [],
+    "contact_customer_assignments": [],
+    "teams": [],
+    "pharmaceutical_products": [],
+    "services": [],
+    "processes": [],
+    "process_tasks": [],
+    "process_milestones": [],
+    "process_team": [],
+    "process_file_transfers": [],
+    "process_notifications": [],
+    "documents": [],
+    "timeline_events": [],
+    "customer_notes": [],
+    "customer_important_dates": [],
+    "ai_chat_sessions": [],
+    "ai_chat_messages": [],
+    "communications": [],
+    "user_sessions": [],
+    "audit_logs": []
+  }
+}

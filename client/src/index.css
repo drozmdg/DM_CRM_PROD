@@ -104,16 +104,17 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold;
+    font-weight: 600;
   }
 
   /* Custom scrollbar styles */
@@ -222,67 +223,96 @@
 @layer components {
   /* Custom component styles */
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 focus-ring;
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  .btn-primary:hover {
+    background-color: hsl(var(--primary) / 0.9);
   }
 
   .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 focus-ring;
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
   }
 
-  .btn-accent {
-    @apply bg-accent text-accent-foreground hover:bg-accent/90 focus-ring;
-  }
-
-  .input-field {
-    @apply bg-background border-input focus:border-ring focus-ring;
+  .btn-secondary:hover {
+    background-color: hsl(var(--secondary) / 0.8);
   }
 
   .card-base {
-    @apply bg-card text-card-foreground border border-border rounded-lg shadow-sm;
-  }
-
-  /* Status badges */
-  .badge-success {
-    @apply bg-success/10 text-success border-success/20;
-  }
-
-  .badge-warning {
-    @apply bg-warning/10 text-warning border-warning/20;
-  }
-
-  .badge-error {
-    @apply bg-destructive/10 text-destructive border-destructive/20;
-  }
-
-  .badge-info {
-    @apply bg-primary/10 text-primary border-primary/20;
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
   }
 
   /* Layout utilities */
   .container-responsive {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    max-width: 80rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .container-responsive {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-responsive {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
   }
 
   .grid-responsive {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1.5rem;
   }
 
-  /* Text utilities */
-  .text-subtle {
-    @apply text-muted-foreground text-sm;
+  @media (min-width: 768px) {
+    .grid-responsive {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 
-  .text-emphasis {
-    @apply text-foreground font-medium;
+  @media (min-width: 1024px) {
+    .grid-responsive {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .grid-responsive {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
   }
 
   /* Spacing utilities */
   .section-spacing {
-    @apply py-12 md:py-16 lg:py-20;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
   }
 
-  .content-spacing {
-    @apply space-y-6 md:space-y-8;
+  @media (min-width: 768px) {
+    .section-spacing {
+      padding-top: 4rem;
+      padding-bottom: 4rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .section-spacing {
+      padding-top: 5rem;
+      padding-bottom: 5rem;
+    }
   }
 }
 
@@ -320,5 +350,170 @@
 
   .safe-right {
     padding-right: env(safe-area-inset-right);
+  }
+
+  /* Fix for bg-muted and similar classes */
+  .bg-muted {
+    background-color: hsl(var(--muted));
+  }
+  .text-muted-foreground {
+    color: hsl(var(--muted-foreground));
+  }
+  .border-muted {
+    border-color: hsl(var(--muted));
+  }
+
+  /* File Viewer Component Styles */
+  
+  /* Word Viewer Styles */
+  .word-content {
+    font-family: system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    color: hsl(var(--foreground));
+  }
+
+  .word-content p {
+    margin-bottom: 1em;
+  }
+
+  .word-content h1, .word-content h2, .word-content h3, 
+  .word-content h4, .word-content h5, .word-content h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+  }
+
+  .word-content h1 { font-size: 1.5em; }
+  .word-content h2 { font-size: 1.3em; }
+  .word-content h3 { font-size: 1.1em; }
+
+  .word-content ul, .word-content ol {
+    margin-left: 1.5em;
+    margin-bottom: 1em;
+  }
+
+  .word-content li {
+    margin-bottom: 0.25em;
+  }
+
+  .word-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    border: 1px solid hsl(var(--border));
+  }
+
+  .word-content th, .word-content td {
+    border: 1px solid hsl(var(--border));
+    padding: 0.5em;
+    text-align: left;
+  }
+
+  .word-content th {
+    background-color: hsl(var(--muted));
+    font-weight: 600;
+  }
+
+  .word-content strong {
+    font-weight: 600;
+  }
+
+  .word-content em {
+    font-style: italic;
+  }
+
+  .word-content img {
+    max-width: 100%;
+    height: auto;
+    margin: 1em 0;
+  }
+
+  /* Excel Viewer Styles */
+  .excel-viewer {
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  .sheet-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background-color: hsl(var(--muted));
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .excel-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .excel-table th {
+    background-color: hsl(var(--muted));
+    font-weight: 600;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid hsl(var(--border));
+    text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .excel-table td {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid hsl(var(--border));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+
+  .excel-table tr:nth-child(even) {
+    background-color: hsl(var(--muted) / 0.3);
+  }
+
+  .excel-table tr:hover {
+    background-color: hsl(var(--accent) / 0.1);
+  }
+
+  /* CSV Viewer Styles */
+  .csv-table {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .csv-header {
+    background-color: hsl(var(--muted));
+    font-weight: 600;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid hsl(var(--border));
+    text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    white-space: nowrap;
+  }
+
+  .csv-cell {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid hsl(var(--border));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+
+  .csv-row:nth-child(even) {
+    background-color: hsl(var(--muted) / 0.2);
+  }
+
+  .csv-row:nth-child(odd) {
+    background-color: hsl(var(--muted) / 0.4);
+  }
+
+  .csv-row:hover {
+    background-color: hsl(var(--accent) / 0.1);
   }
 }

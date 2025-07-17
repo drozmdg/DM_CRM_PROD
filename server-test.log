@@ -1,0 +1,19 @@
+🚀 Starting server test...
+📦 Importing storage...
+✅ Storage imported successfully
+🔧 Initializing storage...
+✅ Supabase database connection verified
+✅ Database service initialized successfully
+✅ Storage initialized successfully
+📦 Importing routes...
+✅ Routes imported successfully
+🔧 Registering routes...
+✅ Routes registered successfully
+🚀 Server running on port 3000
+📍 Health check: http://localhost:3000/health
+Error fetching user: {
+  code: 'PGRST116',
+  details: 'The result contains 0 rows',
+  hint: null,
+  message: 'JSON object requested, multiple (or no) rows returned'
+}

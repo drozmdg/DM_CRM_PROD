@@ -8,9 +8,10 @@ import { TeamService } from './teamService.js';
 import { ContactService } from './contactService.js';
 import { ServiceService } from './serviceService.js';
 import { DocumentService } from './documentService.js';
-import { TimelineService } from './timelineService.js';
 import { ChatService } from './chatService.js';
 import { UserService } from './userService.js';
+import { NoteService } from './noteService.js';
+import { ProductService } from './productService.js';
 import { supabase, checkSupabaseConnection } from '../supabase.js';
 
 export class DatabaseService {
@@ -20,9 +21,10 @@ export class DatabaseService {
   public contacts: ContactService;
   public services: ServiceService;
   public documents: DocumentService;
-  public timeline: TimelineService;
   public chat: ChatService;
   public users: UserService;
+  public notes: NoteService;
+  public products: ProductService;
 
   constructor() {
     this.customers = new CustomerService();
@@ -31,9 +33,10 @@ export class DatabaseService {
     this.contacts = new ContactService();
     this.services = new ServiceService();
     this.documents = new DocumentService();
-    this.timeline = new TimelineService();
     this.chat = new ChatService();
     this.users = new UserService();
+    this.notes = new NoteService();
+    this.products = new ProductService();
   }
   /**
    * Initialize the database connection and verify it's working
@@ -156,5 +159,5 @@ export class DatabaseService {
 export const databaseService = new DatabaseService();
 
 // Export individual services for direct access if needed
-export { CustomerService, ProcessService, TeamService, ContactService, ServiceService, DocumentService, TimelineService, ChatService, UserService };
+export { CustomerService, ProcessService, TeamService, ContactService, ServiceService, DocumentService, ChatService, UserService, NoteService, ProductService };
 export { supabase } from '../supabase.js';

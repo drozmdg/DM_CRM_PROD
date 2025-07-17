@@ -1,0 +1,3 @@
+# Example cron job for daily backups at 2 AM
+# Add this to your crontab (crontab -e)
+0 2 * * * /mnt/d/Vault/User_Projects/Work/SalesDashboard/database/backups/automated-backup.sh >> /var/log/backup.log 2>&1

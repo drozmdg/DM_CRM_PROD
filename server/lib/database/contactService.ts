@@ -8,22 +8,68 @@ import type { Contact, Communication } from '../../../shared/types/index.js';
 export class ContactService {
   /**
    * Get all contacts, optionally filtered by customer
+   * For customer filtering, this includes both direct contacts and assigned internal contacts
    */
   async getAllContacts(customerId?: string): Promise<Contact[]> {
     try {
-      let query = supabase.from('contacts').select('*');
-      
       if (customerId) {
-        query = query.eq('customer_id', customerId);
+        // Get both direct contacts and assigned internal contacts for a customer
+        const [directContacts, assignedContacts] = await Promise.all([
+          // Direct contacts
+          supabase
+            .from('contacts')
+            .select('*')
+            .eq('customer_id', customerId)
+            .order('created_at', { ascending: false }),
+          // Internal contacts assigned to this customer
+          supabase
+            .from('contact_customer_assignments')
+            .select(`
+              contact_id,
+              contacts!inner(*)
+            `)
+            .eq('customer_id', customerId)
+            .eq('contacts.type', 'Internal')
+        ]);
+
+        if (directContacts.error) {
+          console.error('Error fetching direct contacts:', directContacts.error);
+          return [];
+        }
+
+        if (assignedContacts.error) {
+          console.error('Error fetching assigned contacts:', assignedContacts.error);
+          // Continue with just direct contacts if assignments fail
+        }
+
+        // Combine and deduplicate contacts
+        const allContacts = [
+          ...(directContacts.data || []).map(this.mapDbContactToContact),
+          ...(assignedContacts.data || []).map((assignment: any) => 
+            this.mapDbContactToContact(assignment.contacts)
+          )
+        ];
+
+        // Remove duplicates by ID
+        const uniqueContacts = Array.from(
+          new Map(allContacts.map(contact => [contact.id, contact])).values()
+        );
+
+        return uniqueContacts;
+      } else {
+        // Get all contacts
+        const { data, error } = await supabase
+          .from('contacts')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching contacts:', error);
+          return [];
+        }
+        
+        return (data || []).map(this.mapDbContactToContact);
       }
-        const { data, error } = await query.order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching contacts:', error);
-        return [];
-      }
-      
-      return (data || []).map(this.mapDbContactToContact);
     } catch (error) {
       console.error('Error in getAllContacts:', error);
       return [];
@@ -60,7 +106,7 @@ export class ContactService {
     try {
       const contactData = {
         id: contact.id || crypto.randomUUID(),
-        customer_id: contact.customerId,
+        customer_id: contact.type === 'Internal' ? null : contact.customerId,
         name: contact.name || '',
         title: contact.title || null,
         email: contact.email || null,
@@ -306,5 +352,139 @@ export class ContactService {
       date: dbCommunication.date,
       createdAt: dbCommunication.created_at
     };
+  }
+
+  /**
+   * Get all internal contacts (includes both unassigned and assigned)
+   */
+  async getInternalContacts(): Promise<Contact[]> {
+    try {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('type', 'Internal')
+        .order('name');
+      
+      if (error) {
+        console.error('Error fetching internal contacts:', error);
+        return [];
+      }
+      
+      const contacts = (data || []).map(this.mapDbContactToContact);
+      console.log('getInternalContacts found:', contacts.length, 'internal contacts');
+      return contacts;
+    } catch (error) {
+      console.error('Error in getInternalContacts:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all customers assigned to an internal contact
+   */
+  async getContactAssignments(contactId: string): Promise<string[]> {
+    try {
+      const { data, error } = await supabase
+        .from('contact_customer_assignments')
+        .select('customer_id')
+        .eq('contact_id', contactId);
+      
+      if (error) {
+        console.error('Error fetching contact assignments:', error);
+        return [];
+      }
+      
+      return (data || []).map(assignment => assignment.customer_id);
+    } catch (error) {
+      console.error('Error in getContactAssignments:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Assign an internal contact to a customer
+   */
+  async assignContactToCustomer(contactId: string, customerId: string): Promise<void> {
+    try {
+      // First verify the contact is Internal type and get current customer_id
+      const { data: contact, error: contactError } = await supabase
+        .from('contacts')
+        .select('type, customer_id')
+        .eq('id', contactId)
+        .single();
+      
+      if (contactError || !contact) {
+        throw new Error('Contact not found');
+      }
+      
+      if (contact.type !== 'Internal') {
+        throw new Error('Only Internal contacts can be assigned to multiple customers');
+      }
+
+      // If the contact has a customer_id (legacy), migrate it to the assignment table first
+      if (contact.customer_id) {
+        console.log(`Migrating internal contact ${contactId} from customer_id to assignment table`);
+        
+        // Create assignment for the current customer_id
+        await supabase
+          .from('contact_customer_assignments')
+          .insert({
+            contact_id: contactId,
+            customer_id: contact.customer_id,
+            assigned_at: new Date().toISOString()
+          })
+          .select();
+        
+        // Clear the customer_id from the contact
+        await supabase
+          .from('contacts')
+          .update({ customer_id: null })
+          .eq('id', contactId);
+      }
+
+      // Create the new assignment
+      const { error } = await supabase
+        .from('contact_customer_assignments')
+        .insert({
+          contact_id: contactId,
+          customer_id: customerId,
+          assigned_at: new Date().toISOString()
+        })
+        .select();
+      
+      if (error) {
+        // Ignore conflict errors (already assigned)
+        if (!error.message.includes('duplicate key')) {
+          console.error('Error assigning contact to customer:', error);
+          throw new Error(`Failed to assign contact: ${error.message}`);
+        }
+      }
+      
+      console.log(`Successfully assigned internal contact ${contactId} to customer ${customerId}`);
+    } catch (error) {
+      console.error('Error in assignContactToCustomer:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unassign an internal contact from a customer
+   */
+  async unassignContactFromCustomer(contactId: string, customerId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('contact_customer_assignments')
+        .delete()
+        .eq('contact_id', contactId)
+        .eq('customer_id', customerId);
+      
+      if (error) {
+        console.error('Error unassigning contact from customer:', error);
+        throw new Error(`Failed to unassign contact: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error in unassignContactFromCustomer:', error);
+      throw error;
+    }
   }
 }

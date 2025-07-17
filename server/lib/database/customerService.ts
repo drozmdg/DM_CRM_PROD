@@ -3,7 +3,7 @@
  */
 
 import { supabase } from '../supabase.js';
-import type { Customer, Team, Contact, Document, Service, TimelineEvent, Project } from '../../../shared/types/index.js';
+import type { Customer, Team, Contact, Document, Service } from '../../../shared/types/index.js';
 
 export class CustomerService {    async getAllCustomers(includeInactive: boolean = false): Promise<Customer[]> {
     try {
@@ -13,11 +13,9 @@ export class CustomerService {    async getAllCustomers(includeInactive: boolean
         .select(`
           *,
           teams (*),
-          contacts (*),
+          contacts!contacts_customer_id_fkey (*),
           documents (*),
-          services (*),
-          timeline_events (*),
-          projects (*)
+          services (*)
         `)
         .order('name');
 
@@ -43,11 +41,9 @@ export class CustomerService {    async getAllCustomers(includeInactive: boolean
         .select(`
           *,
           teams (*),
-          contacts (*),
+          contacts!contacts_customer_id_fkey (*),
           documents (*),
           services (*),
-          timeline_events (*),
-          projects (*),
           processes (
             *,
             process_timeline_events (*)
@@ -69,8 +65,7 @@ export class CustomerService {    async getAllCustomers(includeInactive: boolean
     try {
       // Generate customer ID using the pattern found in existing data: c-{timestamp}
       const customerId = `c-${Date.now()}`;
-      
-      const { data: customer, error } = await supabase
+        const { data: customer, error } = await supabase
         .from('customers')
         .insert({
           id: customerId,
@@ -79,7 +74,8 @@ export class CustomerService {    async getAllCustomers(includeInactive: boolean
           avatar_color: customerData.avatarColor,
           phase: customerData.phase,
           contract_start_date: customerData.contractStartDate,
-          contract_end_date: customerData.contractEndDate
+          contract_end_date: customerData.contractEndDate,
+          active: true  // Ensure new customers are created as active
         })
         .select()
         .single();
@@ -294,16 +290,7 @@ export class CustomerService {    async getAllCustomers(includeInactive: boolean
           description: event.description,
           title: event.title
         }))
-      })),      timeline: (row.timeline_events || []).map((event: any) => ({
-        id: event.id,
-        date: event.created_at,
-        title: event.title,
-        description: event.description,
-        type: event.event_type,
-        icon: event.icon,
-        metadata: event.metadata
-      })),
-      projects: row.projects || []
+      }))
     };
   }
 }

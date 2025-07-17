@@ -29,7 +29,7 @@ const contactFormSchema = z.object({
   email: z.string().email("Valid email is required"),
   phone: z.string().optional(),
   role: z.string().optional(),
-  type: z.enum(["Client", "Internal"]),
+  type: z.enum(["Client", "Internal", "Vendor", "Partner", "Consultant", "External Stakeholder"]),
 });
 
 interface ContactManagementProps {
@@ -315,6 +315,10 @@ export default function ContactManagement({ customerId, contacts }: ContactManag
                 <SelectContent>
                   <SelectItem value="Client">Client</SelectItem>
                   <SelectItem value="Internal">Internal</SelectItem>
+                  <SelectItem value="Vendor">Vendor</SelectItem>
+                  <SelectItem value="Partner">Partner</SelectItem>
+                  <SelectItem value="Consultant">Consultant</SelectItem>
+                  <SelectItem value="External Stakeholder">External Stakeholder</SelectItem>
                 </SelectContent>
               </Select>
             </div>

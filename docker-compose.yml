@@ -1,0 +1,101 @@
+services:
+  # PostgreSQL Database for development
+  database:
+    image: postgres:15-alpine
+    container_name: sales-dashboard-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sales_dashboard_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_dev_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    networks:
+      - sales-dashboard-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching (development)
+  redis:
+    image: redis:7-alpine
+    container_name: sales-dashboard-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    networks:
+      - sales-dashboard-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Backend API service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: sales-dashboard-backend-dev
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    networks:
+      - sales-dashboard-network
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # Frontend service (Nginx)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      target: production
+    container_name: sales-dashboard-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx-logs:/var/log/nginx
+    networks:
+      - sales-dashboard-network
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+networks:
+  sales-dashboard-network:
+    name: sales-dashboard-dev-network
+    driver: bridge
+
+volumes:
+  postgres_data_dev:
+    name: sales-dashboard-postgres-dev
+  redis_data_dev:
+    name: sales-dashboard-redis-dev

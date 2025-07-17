@@ -1,0 +1,79 @@
+🚀 Starting server test...
+📦 Importing storage...
+✅ Storage imported successfully
+🔧 Initializing storage...
+✅ Supabase database connection verified
+✅ Database service initialized successfully
+✅ Storage initialized successfully
+📦 Importing routes...
+✅ Routes imported successfully
+🔧 Registering routes...
+✅ Routes registered successfully
+🚀 Server running on port 3000
+📍 Health check: http://localhost:3000/health
+Supabase Storage.getTeams called with customerId: undefined
+Getting all teams (no filter)
+SupabaseStorage.getDocuments called with customerId: undefined
+All teams result: 10 teams
+API: /api/contacts returned 13 contacts
+API: Found 4 Internal type contacts in regular contacts
+Supabase Storage.getTeams called with customerId: undefined
+Getting all teams (no filter)
+SupabaseStorage.getDocuments called with customerId: undefined
+All teams result: 10 teams
+API: /api/contacts returned 13 contacts
+API: Found 4 Internal type contacts in regular contacts
+API: /api/contacts returned 13 contacts
+API: Found 4 Internal type contacts in regular contacts
+Supabase Storage.getTeams called with customerId: undefined
+Getting all teams (no filter)
+All teams result: 10 teams
+API: /api/contacts returned 13 contacts
+API: Found 4 Internal type contacts in regular contacts
+Supabase Storage.getTeams called with customerId: undefined
+Getting all teams (no filter)
+SupabaseStorage.getDocuments called with customerId: undefined
+All teams result: 10 teams
+API: /api/contacts returned 13 contacts
+API: Found 4 Internal type contacts in regular contacts
+Supabase Storage.getTeams called with customerId: undefined
+Getting all teams (no filter)
+SupabaseStorage.getDocuments called with customerId: undefined
+API: /api/contacts returned 13 contacts
+API: Found 4 Internal type contacts in regular contacts
+All teams result: 10 teams
+User signed out successfully
+Supabase Storage.getTeams called with customerId: c-1750736426887
+Filtering teams by customerId: c-1750736426887
+Filtered teams result: 2 teams
+API: /api/contacts returned 5 contacts
+API: Found 3 Internal type contacts in regular contacts
+API: /api/contacts returned 13 contacts
+API: Found 4 Internal type contacts in regular contacts
+API: /api/contacts returned 13 contacts
+API: Found 4 Internal type contacts in regular contacts
+API: /api/contacts returned 13 contacts
+API: Found 4 Internal type contacts in regular contacts
+SupabaseStorage.getDocuments called with customerId: undefined
+Supabase Storage.getTeams called with customerId: undefined
+Getting all teams (no filter)
+SupabaseStorage.getDocuments called with customerId: undefined
+API: /api/contacts returned 13 contacts
+API: Found 4 Internal type contacts in regular contacts
+SupabaseStorage.getDocuments called with customerId: undefined
+All teams result: 10 teams
+User signed out successfully
+Supabase Storage.getTeams called with customerId: undefined
+Getting all teams (no filter)
+SupabaseStorage.getDocuments called with customerId: undefined
+All teams result: 10 teams
+API: /api/contacts returned 13 contacts
+API: Found 4 Internal type contacts in regular contacts
+API: /api/contacts returned 13 contacts
+API: Found 4 Internal type contacts in regular contacts
+Supabase Storage.getTeams called with customerId: undefined
+Getting all teams (no filter)
+SupabaseStorage.getDocuments called with customerId: undefined
+API: /api/contacts returned 13 contacts
+API: Found 4 Internal type contacts in regular contacts
+All teams result: 10 teams

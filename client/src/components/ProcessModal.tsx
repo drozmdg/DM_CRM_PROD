@@ -12,10 +12,32 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { insertProcessSchema } from "@shared/schema";
+const insertProcessSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  customerId: z.string().min(1),
+  jiraTicket: z.string().optional(),
+  status: z.string().min(1),
+  sdlcStage: z.string().min(1),
+  startDate: z.string().min(1),
+  dueDate: z.string().optional(),
+  approvalStatus: z.string().default("Pending"),
+  estimate: z.number().optional(),
+  functionalArea: z.string().optional(),
+  responsibleContactId: z.string().optional(),
+  progress: z.number().default(0),
+  isTpaRequired: z.boolean().default(false),
+  tpaResponsibleContactId: z.string().optional(),
+  tpaDataSource: z.string().optional(),
+  tpaStartDate: z.string().optional(),
+  tpaEndDate: z.string().optional(),
+});
 import ProcessTimeline from "./ProcessTimeline";
 import ProcessApproval from "./ProcessApproval";
 import ProcessDependencies from "./ProcessDependencies";
+import ProcessFileTransferConfig from "./ProcessFileTransferConfig";
+import ProcessNotificationList from "./ProcessNotificationList";
+import TpaDetailsForm from "./TpaDetailsForm";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const processFormSchema = insertProcessSchema.extend({
@@ -24,6 +46,12 @@ const processFormSchema = insertProcessSchema.extend({
   estimate: z.string().optional(), // Change from number to string for form handling
   customerId: z.string().min(1, "Customer is required"),
   responsibleContactId: z.string().optional(),
+  // TPA fields
+  isTpaRequired: z.boolean().optional(),
+  tpaResponsibleContactId: z.string().optional(),
+  tpaDataSource: z.string().optional(),
+  tpaStartDate: z.string().optional(),
+  tpaEndDate: z.string().optional(),
 });
 
 interface ProcessModalProps {
@@ -59,6 +87,7 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
     resolver: zodResolver(processFormSchema),
     defaultValues: {
       name: "",
+      description: "",
       customerId: "",
       jiraTicket: "",
       status: "Not Started",
@@ -69,7 +98,12 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
       estimate: "",
       functionalArea: "",
       responsibleContactId: "",
-      progress: 0,
+      // TPA fields
+      isTpaRequired: false,
+      tpaResponsibleContactId: "",
+      tpaDataSource: "",
+      tpaStartDate: "",
+      tpaEndDate: "",
     },
   });
 
@@ -77,6 +111,7 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
     if (process) {
       form.reset({
         name: process.name || "",
+        description: process.description || "",
         customerId: process.customerId?.toString() || "",
         jiraTicket: process.jiraTicket || "",
         status: process.status || "Not Started",
@@ -87,11 +122,17 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
         estimate: process.estimate?.toString() || "",
         functionalArea: process.functionalArea || "",
         responsibleContactId: process.responsibleContactId?.toString() || "",
-        progress: process.progress || 0,
+        // TPA fields
+        isTpaRequired: process.isTpaRequired || false,
+        tpaResponsibleContactId: process.tpaResponsibleContactId || "",
+        tpaDataSource: process.tpaDataSource || "",
+        tpaStartDate: process.tpaStartDate || "",
+        tpaEndDate: process.tpaEndDate || "",
       });
     } else {
       form.reset({
         name: "",
+        description: "",
         customerId: "",
         jiraTicket: "",
         status: "Not Started",
@@ -102,7 +143,12 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
         estimate: "",
         functionalArea: "",
         responsibleContactId: "",
-        progress: 0,
+        // TPA fields
+        isTpaRequired: false,
+        tpaResponsibleContactId: "",
+        tpaDataSource: "",
+        tpaStartDate: "",
+        tpaEndDate: "",
       });
     }
   }, [process, form]);
@@ -140,6 +186,7 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
   const onSubmit = (data: any) => {
     console.log("🔍 Form submission triggered");
     console.log("📊 Raw form data:", data);
+    console.log("📝 Description from form data:", data.description);
     
     // Check for form validation errors
     const errors = form.formState.errors;
@@ -196,7 +243,18 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
       dueDate: data.dueDate && data.dueDate.trim() !== "" ? data.dueDate : undefined,
       // Ensure functionalArea is valid enum or omit field entirely (backend rejects empty string)
       functionalArea: data.functionalArea && data.functionalArea.trim() !== "" ? data.functionalArea : undefined,
+      // Ensure description is included (keep as string or undefined)
+      description: data.description || undefined,
+      // TPA fields
+      isTpaRequired: data.isTpaRequired || false,
+      tpaResponsibleContactId: data.tpaResponsibleContactId && data.tpaResponsibleContactId.trim() !== "" ? data.tpaResponsibleContactId : undefined,
+      tpaDataSource: data.tpaDataSource && data.tpaDataSource.trim() !== "" ? data.tpaDataSource : undefined,
+      tpaStartDate: data.tpaStartDate && data.tpaStartDate.trim() !== "" ? data.tpaStartDate : undefined,
+      tpaEndDate: data.tpaEndDate && data.tpaEndDate.trim() !== "" ? data.tpaEndDate : undefined,
     };
+    
+    console.log('🔍 DEBUG: Description from form:', data.description);
+    console.log('🔍 DEBUG: Description in submitData:', submitData.description);
     
     console.log("🚀 Processed submit data:", submitData);
     console.log("🎯 Mutation about to be called");
@@ -220,11 +278,14 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="tpa">TPA</TabsTrigger>
             <TabsTrigger value="timeline" disabled={!process}>Timeline</TabsTrigger>
             <TabsTrigger value="approval" disabled={!process}>Approval</TabsTrigger>
             <TabsTrigger value="dependencies" disabled={!process}>Dependencies</TabsTrigger>
+            <TabsTrigger value="file-transfers" disabled={!process}>File Transfers</TabsTrigger>
+            <TabsTrigger value="notifications" disabled={!process}>Notifications</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -236,6 +297,16 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
                     id="name"
                     {...form.register("name")}
                     placeholder="Enter process name"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    {...form.register("description")}
+                    placeholder="Enter process description..."
+                    rows={3}
                   />
                 </div>
 
@@ -371,17 +442,6 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
                   </Select>
                 </div>
 
-                <div>
-                  <Label htmlFor="progress">Progress (%)</Label>
-                  <Input
-                    id="progress"
-                    type="number"
-                    min="0"
-                    max="100"
-                    {...form.register("progress", { valueAsNumber: true })}
-                    placeholder="0"
-                  />
-                </div>
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
@@ -396,6 +456,16 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
                 </Button>
               </div>
             </form>
+          </TabsContent>
+
+          <TabsContent value="tpa">
+            <TpaDetailsForm 
+              form={form} 
+              contacts={customerContacts} 
+              isEditMode={!!process}
+              onSubmit={() => form.handleSubmit(onSubmit)()}
+              isSubmitting={mutation.isPending}
+            />
           </TabsContent>
 
           <TabsContent value="timeline">
@@ -425,6 +495,18 @@ export default function ProcessModal({ isOpen, onClose, process }: ProcessModalP
                 processId={process.id}
                 customerId={process.customerId}
               />
+            )}
+          </TabsContent>
+
+          <TabsContent value="file-transfers">
+            {process && (
+              <ProcessFileTransferConfig processId={process.id} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            {process && (
+              <ProcessNotificationList processId={process.id} />
             )}
           </TabsContent>
         </Tabs>

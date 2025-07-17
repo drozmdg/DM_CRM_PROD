@@ -1,0 +1,13 @@
+
+> sales-dashboard-client@1.0.0 dev
+> vite
+
+4:06:45 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+
+  VITE v6.3.5  ready in 5935 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.255.255.254:5173/
+  ➜  Network: http://172.30.10.70:5173/
+4:08:27 PM [vite] (client) ✨ new dependencies optimized: drizzle-orm/pg-core, drizzle-orm, drizzle-zod
+4:08:27 PM [vite] (client) ✨ optimized dependencies changed. reloading

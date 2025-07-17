@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,8 @@ import { Search, Plus, Download } from "lucide-react";
 import CustomerModal from "@/components/CustomerModal";
 import CustomerCardGrid from "@/components/CustomerCardGrid";
 import { customerApi } from "@/lib/api";
+import { usePermissions } from "@/components/auth/ProtectedRoute";
+import { useApiClient } from "@/lib/authenticatedApiClient";
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -15,16 +17,47 @@ export default function Customers() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [includeInactive, setIncludeInactive] = useState(false);
   const queryClient = useQueryClient();
+  const { canEdit } = usePermissions();
+  const apiClient = useApiClient();
 
-  const { data: customers, isLoading } = useQuery({
-    queryKey: ["customers", includeInactive],
-    queryFn: () => customerApi.getAll(includeInactive),
+  // Use React Query for data fetching
+  const { data: customers = [], isLoading, error } = useQuery({
+    queryKey: [includeInactive ? "/api/customers?includeInactive=true" : "/api/customers"],
+    queryFn: async () => {
+      const endpoint = includeInactive ? "/customers?includeInactive=true" : "/customers";
+      const data = await apiClient.get(endpoint);
+      
+      // Ensure we always return an array
+      if (!Array.isArray(data)) {
+        console.error('API returned non-array data:', data);
+        return [];
+      }
+      
+      return data;
+    },
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false
   });
 
-  const filteredCustomers = (customers as any[])?.filter((customer: any) =>
+  // Early return for loading and error states
+  if (isLoading) {
+    return <div className="p-6">Loading customers...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-600">Error loading customers: {error instanceof Error ? error.message : 'Unknown error'}</div>;
+  }
+
+  const filteredCustomers = Array.isArray(customers) ? customers.filter((customer: any) =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.phase.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  ) : [];
+
+  // Debug logging
+  console.log('Customers data:', customers, 'Type:', typeof customers, 'Is Array:', Array.isArray(customers));
+  console.log('Filtered customers length:', filteredCustomers.length);
 
   const handleViewCustomer = (customer: any) => {
     setSelectedCustomer(customer);
@@ -37,7 +70,8 @@ export default function Customers() {
     try {
       await customerApi.reactivate(customer.id);
       // Invalidate and refetch customer queries
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers?includeInactive=true"] });
     } catch (error) {
       console.error('Failed to reactivate customer:', error);
     }
@@ -51,7 +85,8 @@ export default function Customers() {
       if (confirmed) {
         await customerApi.delete(customer.id);
         // Invalidate and refetch customer queries
-        queryClient.invalidateQueries({ queryKey: ["customers"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/customers?includeInactive=true"] });
       }
     } catch (error) {
       console.error('Failed to deactivate customer:', error);
@@ -96,13 +131,11 @@ export default function Customers() {
         customer.services?.reduce((sum: number, service: any) => sum + (service.monthlyHours || 0), 0) || 0,
         customer.processes?.length || 0,
         customer.timeline?.length || 0
-      ]);
-
-      // Convert to CSV format
+      ]);      // Convert to CSV format
       const csvContent = [
         csvHeaders.join(','),
-        ...csvRows.map(row => 
-          row.map(field => 
+        ...csvRows.map((row: any[]) => 
+          row.map((field: any) => 
             typeof field === 'string' && field.includes(',') 
               ? `"${field.replace(/"/g, '""')}"` 
               : field
@@ -134,16 +167,18 @@ export default function Customers() {
           <h2 className="text-2xl font-semibold text-neutral-800 mb-2">Customers</h2>
           <p className="text-neutral-600">Manage your customer relationships and track their progress</p>
         </div>
-        <Button 
-          className="bg-primary hover:bg-primary/90"
-          onClick={() => {
-            setSelectedCustomer(null);
-            setIsModalOpen(true);
-          }}
-        >
-          <Plus className="mr-2" size={16} />
-          Add Customer
-        </Button>
+        {canEdit() && (
+          <Button 
+            className="bg-primary hover:bg-primary/90"
+            onClick={() => {
+              setSelectedCustomer(null);
+              setIsModalOpen(true);
+            }}
+          >
+            <Plus className="mr-2" size={16} />
+            Add Customer
+          </Button>
+        )}
       </div>      {/* Search and Filters */}
       <Card className="mb-6">
         <CardContent className="p-6">
@@ -176,9 +211,16 @@ export default function Customers() {
               <Download size={16} />
               Export
             </Button>
-          </div>
-        </CardContent>
-      </Card>      {/* Enhanced Customer Grid */}
+          </div>        </CardContent>
+      </Card>
+
+      {/* Enhanced Customer Grid */}      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <h3 className="text-red-800 font-medium">Error loading customers:</h3>
+          <p className="text-red-600 text-sm mt-1">{String(error)}</p>
+        </div>
+      )}
+      
       <CustomerCardGrid 
         customers={filteredCustomers}
         isLoading={isLoading}

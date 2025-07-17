@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance - ${project_name}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .maintenance-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 60px 40px;
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .maintenance-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 30px;
+            background: #667eea;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: white;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #2d3748;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .message {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #4a5568;
+            margin-bottom: 40px;
+        }
+        
+        .status-info {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 30px 0;
+            border-left: 4px solid #667eea;
+        }
+        
+        .status-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .status-details {
+            color: #718096;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        .contact-info {
+            background: #edf2f7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .contact-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        
+        .contact-details {
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px;
+            animation: progress 3s ease-in-out infinite;
+        }
+        
+        @keyframes progress {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 0%; }
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            color: #718096;
+            font-size: 0.85rem;
+        }
+        
+        .refresh-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-top: 20px;
+        }
+        
+        .refresh-button:hover {
+            background: #5a6fd8;
+        }
+        
+        @media (max-width: 480px) {
+            .maintenance-container {
+                padding: 40px 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .message {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="maintenance-container">
+        <div class="maintenance-icon">
+            🔧
+        </div>
+        
+        <h1>Under Maintenance</h1>
+        <div class="subtitle">${project_name}</div>
+        
+        <div class="message">
+            We're currently performing scheduled maintenance to improve your experience. 
+            Our team is working hard to get everything back online as quickly as possible.
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+        
+        <div class="status-info">
+            <div class="status-title">🚀 What's Being Updated</div>
+            <div class="status-details">
+                • System performance enhancements<br>
+                • Security updates and patches<br>
+                • Database optimization<br>
+                • New feature deployment
+            </div>
+        </div>
+        
+        <div class="status-info">
+            <div class="status-title">⏱️ Expected Duration</div>
+            <div class="status-details">
+                We expect this maintenance to complete within the next 30-60 minutes. 
+                We'll have everything back online as soon as possible.
+            </div>
+        </div>
+        
+        <button class="refresh-button" onclick="window.location.reload()">
+            Check Again
+        </button>
+        
+        <div class="contact-info">
+            <div class="contact-title">📞 Need Immediate Assistance?</div>
+            <div class="contact-details">
+                For urgent matters, please contact our support team:<br>
+                Email: support@company.com<br>
+                Phone: 1-800-SUPPORT<br>
+                Status Page: status.company.com
+            </div>
+        </div>
+        
+        <div class="footer">
+            Environment: ${environment} | Last Updated: <span id="timestamp"></span>
+        </div>
+    </div>
+    
+    <script>
+        // Update timestamp
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        
+        // Auto-refresh every 5 minutes
+        setTimeout(function() {
+            window.location.reload();
+        }, 300000);
+        
+        // Add some interactive feedback
+        document.querySelector('.refresh-button').addEventListener('click', function() {
+            this.textContent = 'Checking...';
+            this.disabled = true;
+            
+            setTimeout(function() {
+                window.location.reload();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

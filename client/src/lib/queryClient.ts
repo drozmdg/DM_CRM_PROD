@@ -11,16 +11,32 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  authHeaders?: Record<string, string>
 ): Promise<Response> {
+  const headers: Record<string, string> = {
+    ...(data ? { "Content-Type": "application/json" } : {}),
+    ...(authHeaders || {}),
+  };
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
 
   await throwIfResNotOk(res);
   return res;
+}
+
+export async function authenticatedApiRequest(
+  method: string,
+  url: string,
+  data?: unknown | undefined,
+  getAuthHeaders?: () => Record<string, string>
+): Promise<Response> {
+  const authHeaders = getAuthHeaders ? getAuthHeaders() : {};
+  return apiRequest(method, url, data, authHeaders);
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -44,14 +60,23 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      staleTime: 30 * 1000, // 30 seconds
+      gcTime: 5 * 60 * 1000, // 5 minutes
+      retry: (failureCount, error) => {
+        // Don't retry on 4xx errors
+        if (error instanceof Error && error.message.match(/^4\d{2}:/)) {
+          return false;
+        }
+        // Retry up to 2 times for other errors
+        return failureCount < 2;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
     mutations: {
-      retry: false,
+      retry: 1,
+      retryDelay: 1000,
     },
   },
 });

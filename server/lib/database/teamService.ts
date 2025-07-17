@@ -68,7 +68,9 @@ export class TeamService {
           id: teamId,
           name: teamData.name,
           finance_code: teamData.financeCode,
-          customer_id: teamData.customerId
+          customer_id: teamData.customerId,
+          start_date: teamData.startDate,
+          end_date: teamData.endDate
         })
         .select()
         .single();
@@ -89,6 +91,8 @@ export class TeamService {
         .update({
           name: updates.name,
           finance_code: updates.financeCode,
+          start_date: updates.startDate,
+          end_date: updates.endDate,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -114,6 +118,85 @@ export class TeamService {
       if (error) throw error;
     } catch (error) {
       console.error('Error deleting team:', error);
+      throw error;
+    }
+  }
+
+  async getTeamsByProcessId(processId: string): Promise<Team[]> {
+    try {
+      // First get the team IDs from process_team
+      const { data: processTeams, error: ptError } = await supabase
+        .from('process_team')
+        .select('team_id')
+        .eq('process_id', processId);
+
+      if (ptError) throw ptError;
+
+      if (!processTeams || processTeams.length === 0) {
+        return [];
+      }
+
+      // Then get the full team details
+      const teamIds = processTeams.map(pt => pt.team_id);
+      const { data: teams, error: teamsError } = await supabase
+        .from('teams')
+        .select('*')
+        .in('id', teamIds);
+
+      if (teamsError) throw teamsError;
+
+      return (teams || []).map(this.transformTeamRow);
+    } catch (error) {
+      console.error('Error fetching teams by process:', error);
+      throw error;
+    }
+  }
+
+  async assignTeamToProcess(processId: string, teamId: string): Promise<void> {
+    try {
+      // Check if assignment already exists
+      const { data: existing, error: checkError } = await supabase
+        .from('process_team')
+        .select('*')
+        .eq('process_id', processId)
+        .eq('team_id', teamId)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 means no rows found, which is what we want
+        throw checkError;
+      }
+
+      if (existing) {
+        // Assignment already exists
+        return;
+      }
+
+      const { error } = await supabase
+        .from('process_team')
+        .insert({
+          process_id: processId,
+          team_id: teamId
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error assigning team to process:', error);
+      throw error;
+    }
+  }
+
+  async unassignTeamFromProcess(processId: string, teamId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('process_team')
+        .delete()
+        .eq('process_id', processId)
+        .eq('team_id', teamId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error unassigning team from process:', error);
       throw error;
     }
   }
@@ -157,7 +240,11 @@ export class TeamService {
     return {
       id: row.id,
       name: row.name,
-      financeCode: row.finance_code
+      financeCode: row.finance_code,
+      startDate: row.start_date,
+      endDate: row.end_date
     };
   }
 }
+
+export const teamService = new TeamService();

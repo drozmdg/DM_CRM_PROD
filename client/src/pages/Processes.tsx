@@ -9,6 +9,8 @@ import { Search, Plus, Eye, Edit, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { useLocation } from "wouter";
 import ProcessModal from "@/components/ProcessModal";
+import StatusBadge from "@/components/StatusBadge";
+import SDLCStageBadge from "@/components/SDLCStageBadge";
 
 export default function Processes() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -27,6 +29,16 @@ export default function Processes() {
     },
   });
 
+  // Fetch progress data separately for better performance
+  const { data: progressMap } = useQuery({
+    queryKey: ["/api/processes/progress/all"],
+    queryFn: async () => {
+      const response = await fetch("/api/processes/progress/all", { credentials: "include" });
+      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+      return response.json();
+    },
+  });
+
   const { data: customers } = useQuery({
     queryKey: ["/api/customers"],
     queryFn: async () => {
@@ -40,26 +52,6 @@ export default function Processes() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "In Progress": return "bg-warning text-warning-foreground";
-      case "Completed": return "bg-success text-success-foreground";
-      case "Not Started": return "bg-muted text-muted-foreground";
-      default: return "bg-muted text-muted-foreground";
-    }
-  };
-
-  const getSDLCStageColor = (stage: string) => {
-    switch (stage) {
-      case "Requirements": return "bg-muted text-muted-foreground";
-      case "Design": return "bg-primary/10 text-primary";
-      case "Development": return "bg-primary text-primary-foreground";
-      case "Testing": return "bg-warning/10 text-warning";
-      case "Deployment": return "bg-success/10 text-success";
-      case "Maintenance": return "bg-success text-success-foreground";
-      default: return "bg-muted text-muted-foreground";
-    }
-  };
 
   const handleViewProcess = (process: any) => {
     setLocation(`/processes/${process.id}`);
@@ -280,27 +272,31 @@ export default function Processes() {
                         )}
                       </td>
                       <td className="py-4 px-4">
-                        <Badge className={getStatusColor(process.status)}>
-                          {process.status}
-                        </Badge>
+                        <StatusBadge status={process.status} />
                       </td>
                       <td className="py-4 px-4">
-                        <Badge variant="outline" className={getSDLCStageColor(process.sdlcStage)}>
-                          {process.sdlcStage}
-                        </Badge>
+                        <SDLCStageBadge stage={process.sdlcStage} />
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center space-x-2">
                           <Calendar size={14} className="text-neutral-400" />
                           <span className="text-sm text-neutral-800">
-                            {process.dueDate && format(new Date(process.dueDate), "MMM d, yyyy")}
+                            {process.dueDate && (() => {
+                              try {
+                                const date = new Date(process.dueDate);
+                                return isNaN(date.getTime()) ? 'Invalid date' : format(date, "MMM d, yyyy");
+                              } catch (error) {
+                                console.error('Date formatting error in Processes:', error, 'dueDate:', process.dueDate);
+                                return 'Invalid date';
+                              }
+                            })()}
                           </span>
                         </div>
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center space-x-2">
-                          <Progress value={process.progress || 0} className="w-20" />
-                          <span className="text-xs text-neutral-600">{process.progress || 0}%</span>
+                          <Progress value={progressMap?.[process.id] || 0} className="w-20" />
+                          <span className="text-xs text-neutral-600">{progressMap?.[process.id] || 0}%</span>
                         </div>
                       </td>
                       <td className="py-4 px-4">

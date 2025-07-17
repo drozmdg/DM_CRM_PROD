@@ -1,0 +1,106 @@
+# Git and version control
+.git
+.gitignore
+*.md
+!README.md
+
+# Development files
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules
+client/node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs (exclude what we're building)
+dist
+build
+.next
+.nuxt
+coverage
+
+# Development tools
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Logs
+logs
+*.log
+server.log
+server.pid
+*.pid
+*.pid.lock
+
+# Testing
+.coverage
+.nyc_output
+.jest
+test-results
+e2e/test-results
+playwright-report
+
+# Cache directories
+.cache
+.npm
+.yarn
+.pnpm-store
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Development databases
+*.sqlite
+*.sqlite3
+*.db
+
+# Temporary files
+tmp
+temp
+*.tmp
+*.temp
+
+# Documentation (keep only essential)
+docs
+documentation
+*.md
+!CLAUDE.md
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# Package manager files
+package-lock.json.backup
+yarn.lock.backup
+
+# IDE files
+*.sublime-project
+*.sublime-workspace
+
+# TypeScript cache
+*.tsbuildinfo
+
+# ESLint cache
+.eslintcache
+
+# Prettier cache
+.prettierrc.cache
+
+# Docker files (don't include when building)
+Dockerfile*
+docker-compose*.yml
+.dockerignore

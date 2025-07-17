@@ -25,12 +25,21 @@ import {
   UserPlus,
   Edit
 } from "lucide-react";
-import { insertCustomerSchema } from "@shared/schema";
+import { z } from "zod";
+
+const insertCustomerSchema = z.object({
+  name: z.string().min(1),
+  phase: z.string().min(1),
+  contractStartDate: z.string().optional(),
+  contractEndDate: z.string().optional(),
+  logoUrl: z.string().optional(),
+  avatarColor: z.string().default("#1976D2"),
+  active: z.boolean().default(true),
+});
 import TeamModal from "./TeamModal";
 import ProcessModal from "./ProcessModal";
 import ContactManagement from "./ContactManagement";
 import ServiceManagement from "./ServiceManagement";
-import CustomerTimeline from "./CustomerTimeline";
 import CustomerAvatar from "./CustomerAvatar";
 import DocumentUpload from "./DocumentUpload";
 
@@ -99,16 +108,6 @@ export default function CustomerModal({ isOpen, onClose, customer }: CustomerMod
     enabled: !!customer?.id,
   });
 
-  const { data: timeline } = useQuery({
-    queryKey: ["/api/timeline", { customerId: customer?.id }],
-    queryFn: async () => {
-      const url = `/api/timeline?customerId=${customer?.id}`;
-      const response = await fetch(url, { credentials: "include" });
-      if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
-      return response.json();
-    },
-    enabled: !!customer?.id,
-  });
 
   const { data: teams } = useQuery({
     queryKey: ["/api/teams", { customerId: customer?.id }],
@@ -161,6 +160,7 @@ export default function CustomerModal({ isOpen, onClose, customer }: CustomerMod
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers?includeInactive=true"] });
       toast({
         title: "Success",
         description: `Customer ${customer ? "updated" : "created"} successfully`,
@@ -191,8 +191,8 @@ export default function CustomerModal({ isOpen, onClose, customer }: CustomerMod
       case "Steady State": return "bg-primary/10 text-primary";
       case "Contracting": return "bg-warning/10 text-warning";
       case "Pending Termination": return "bg-destructive/10 text-destructive";
-      case "Terminated": return "bg-muted text-muted-foreground";
-      default: return "bg-muted text-muted-foreground";
+      case "Terminated": return "bg-gray-100 text-gray-600";
+      default: return "bg-gray-100 text-gray-600";
     }
   };
 
@@ -229,7 +229,6 @@ export default function CustomerModal({ isOpen, onClose, customer }: CustomerMod
             <TabsTrigger value="services" disabled={!customer}>Services</TabsTrigger>
             <TabsTrigger value="processes" disabled={!customer}>Processes</TabsTrigger>
             <TabsTrigger value="documents" disabled={!customer}>Documents</TabsTrigger>
-            <TabsTrigger value="timeline" disabled={!customer}>Timeline</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -326,9 +325,16 @@ export default function CustomerModal({ isOpen, onClose, customer }: CustomerMod
                         </div>
                         <div>
                           <h4 className="font-medium text-neutral-800">{team.name}</h4>
-                          <Badge variant="outline" className="bg-muted text-muted-foreground mt-1">
-                            {team.financeCode}
-                          </Badge>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <Badge variant="outline" className="bg-gray-100 text-gray-600">
+                              {team.financeCode}
+                            </Badge>
+                            {team.startDate && (
+                              <span className="text-xs text-neutral-600">
+                                {new Date(team.startDate).toLocaleDateString()} - {team.endDate ? new Date(team.endDate).toLocaleDateString() : 'Present'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <Button 
@@ -341,11 +347,6 @@ export default function CustomerModal({ isOpen, onClose, customer }: CustomerMod
                       >
                         <Edit size={14} />
                       </Button>
-                    </div>
-                    <div className="mt-3 flex items-center text-sm text-neutral-600">
-                      <code className="bg-neutral-100 px-2 py-1 rounded text-xs">
-                        {team.financeCode}
-                      </code>
                     </div>
                   </CardContent>
                 </Card>
@@ -475,9 +476,6 @@ export default function CustomerModal({ isOpen, onClose, customer }: CustomerMod
             </div>
           </TabsContent>
 
-          <TabsContent value="timeline">
-            <CustomerTimeline customerId={customer?.id} timeline={timeline || []} />
-          </TabsContent>
         </Tabs>
       </DialogContent>
       

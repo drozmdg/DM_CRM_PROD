@@ -1,0 +1,310 @@
+{
+  "summary": {
+    "total": 13,
+    "passed": 13,
+    "failed": 0,
+    "skipped": 0,
+    "success_rate": "100.0",
+    "duration": "5s",
+    "timestamp": "2025-07-17T00:13:31.181Z"
+  },
+  "environment": {
+    "database": "PostgreSQL 15 (Docker)",
+    "container_platform": "Docker",
+    "concurrent_users_tested": 10,
+    "load_test_duration": 30
+  },
+  "performance_thresholds": {
+    "max_query_time": "1000ms",
+    "max_response_time": "2000ms",
+    "concurrent_users": 10
+  },
+  "test_categories": {
+    "Database Performance": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    "Container Scalability": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "Backup Performance": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    "Caching Performance": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    "Load Testing": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "detailed_results": [
+    {
+      "id": "Database Performance-Single Query Performance",
+      "category": "Database Performance",
+      "name": "Single Query Performance",
+      "status": "PASSED",
+      "duration": 156,
+      "metrics": {
+        "queries": [
+          {
+            "query": "SELECT COUNT(*) FROM customers...",
+            "duration": 53
+          },
+          {
+            "query": "SELECT * FROM customers WHERE active = true...",
+            "duration": 51
+          },
+          {
+            "query": "SELECT c.name, COUNT(p.id) FROM customers c LEFT J...",
+            "duration": 52
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "Database Performance-Concurrent Query Performance",
+      "category": "Database Performance",
+      "name": "Concurrent Query Performance",
+      "status": "PASSED",
+      "duration": 98,
+      "metrics": {
+        "concurrent_queries": 5,
+        "total_duration": 93,
+        "avg_per_query": 19
+      },
+      "error": null
+    },
+    {
+      "id": "Database Performance-Complex Join Performance",
+      "category": "Database Performance",
+      "name": "Complex Join Performance",
+      "status": "PASSED",
+      "duration": 50,
+      "metrics": {
+        "complex_join_duration": 49
+      },
+      "error": null
+    },
+    {
+      "id": "Database Performance-Database Connection Pool",
+      "category": "Database Performance",
+      "name": "Database Connection Pool",
+      "status": "PASSED",
+      "duration": 193,
+      "metrics": {
+        "concurrent_connections": 10,
+        "avg_connection_time": 146,
+        "max_connection_time": 184
+      },
+      "error": null
+    },
+    {
+      "id": "Container Scalability-Container Resource Usage",
+      "category": "Container Scalability",
+      "name": "Container Resource Usage",
+      "status": "PASSED",
+      "duration": 2044,
+      "metrics": {
+        "cpu_percent": 0,
+        "memory_usage": "31.98MiB / 15.5GiB",
+        "memory_percent": 0.2
+      },
+      "error": null
+    },
+    {
+      "id": "Container Scalability-Container Health Under Load",
+      "category": "Container Scalability",
+      "name": "Container Health Under Load",
+      "status": "PASSED",
+      "duration": 381,
+      "metrics": {
+        "concurrent_operations": 20,
+        "total_duration": 312,
+        "avg_operation_time": 16
+      },
+      "error": null
+    },
+    {
+      "id": "Container Scalability-Storage Performance",
+      "category": "Container Scalability",
+      "name": "Storage Performance",
+      "status": "PASSED",
+      "duration": 61,
+      "metrics": {
+        "storage_query_duration": 61,
+        "tables_analyzed": 28
+      },
+      "error": null
+    },
+    {
+      "id": "Backup Performance-Backup Creation Performance",
+      "category": "Backup Performance",
+      "name": "Backup Creation Performance",
+      "status": "PASSED",
+      "duration": 138,
+      "metrics": {
+        "backup_duration": 123,
+        "backup_lines": 1938,
+        "backup_rate_lines_per_second": 15756
+      },
+      "error": null
+    },
+    {
+      "id": "Backup Performance-Incremental Backup Simulation",
+      "category": "Backup Performance",
+      "name": "Incremental Backup Simulation",
+      "status": "PASSED",
+      "duration": 55,
+      "metrics": {
+        "incremental_query_duration": 55,
+        "change_detection_time": 55
+      },
+      "error": null
+    },
+    {
+      "id": "Caching Performance-Query Plan Caching",
+      "category": "Caching Performance",
+      "name": "Query Plan Caching",
+      "status": "PASSED",
+      "duration": 260,
+      "metrics": {
+        "first_execution_time": 52,
+        "avg_subsequent_time": 52,
+        "performance_improvement_percent": 0
+      },
+      "error": null
+    },
+    {
+      "id": "Caching Performance-Connection Pooling Effectiveness",
+      "category": "Caching Performance",
+      "name": "Connection Pooling Effectiveness",
+      "status": "PASSED",
+      "duration": 196,
+      "metrics": {
+        "sequential_queries": 4,
+        "total_duration": 196,
+        "avg_per_query": 49
+      },
+      "error": null
+    },
+    {
+      "id": "Load Testing-Database Load Simulation",
+      "category": "Load Testing",
+      "name": "Database Load Simulation",
+      "status": "PASSED",
+      "duration": 473,
+      "metrics": {
+        "concurrent_users": 10,
+        "total_load_duration": 461,
+        "avg_user_session_time": 456,
+        "max_user_session_time": 471,
+        "queries_per_user": 3
+      },
+      "error": null
+    },
+    {
+      "id": "Load Testing-Peak Load Handling",
+      "category": "Load Testing",
+      "name": "Peak Load Handling",
+      "status": "PASSED",
+      "duration": 396,
+      "metrics": {
+        "burst_operations": 25,
+        "burst_duration": 358,
+        "operations_per_second": 70
+      },
+      "error": null
+    }
+  ],
+  "performance_metrics": {
+    "Database Performance-Single Query Performance": {
+      "queries": [
+        {
+          "query": "SELECT COUNT(*) FROM customers...",
+          "duration": 53
+        },
+        {
+          "query": "SELECT * FROM customers WHERE active = true...",
+          "duration": 51
+        },
+        {
+          "query": "SELECT c.name, COUNT(p.id) FROM customers c LEFT J...",
+          "duration": 52
+        }
+      ]
+    },
+    "Database Performance-Concurrent Query Performance": {
+      "concurrent_queries": 5,
+      "total_duration": 93,
+      "avg_per_query": 19
+    },
+    "Database Performance-Complex Join Performance": {
+      "complex_join_duration": 49
+    },
+    "Database Performance-Database Connection Pool": {
+      "concurrent_connections": 10,
+      "avg_connection_time": 146,
+      "max_connection_time": 184
+    },
+    "Container Scalability-Container Resource Usage": {
+      "cpu_percent": 0,
+      "memory_usage": "31.98MiB / 15.5GiB",
+      "memory_percent": 0.2
+    },
+    "Container Scalability-Container Health Under Load": {
+      "concurrent_operations": 20,
+      "total_duration": 312,
+      "avg_operation_time": 16
+    },
+    "Container Scalability-Storage Performance": {
+      "storage_query_duration": 61,
+      "tables_analyzed": 28
+    },
+    "Backup Performance-Backup Creation Performance": {
+      "backup_duration": 123,
+      "backup_lines": 1938,
+      "backup_rate_lines_per_second": 15756
+    },
+    "Backup Performance-Incremental Backup Simulation": {
+      "incremental_query_duration": 55,
+      "change_detection_time": 55
+    },
+    "Caching Performance-Query Plan Caching": {
+      "first_execution_time": 52,
+      "avg_subsequent_time": 52,
+      "performance_improvement_percent": 0
+    },
+    "Caching Performance-Connection Pooling Effectiveness": {
+      "sequential_queries": 4,
+      "total_duration": 196,
+      "avg_per_query": 49
+    },
+    "Load Testing-Database Load Simulation": {
+      "concurrent_users": 10,
+      "total_load_duration": 461,
+      "avg_user_session_time": 456,
+      "max_user_session_time": 471,
+      "queries_per_user": 3
+    },
+    "Load Testing-Peak Load Handling": {
+      "burst_operations": 25,
+      "burst_duration": 358,
+      "operations_per_second": 70
+    }
+  },
+  "recommendations": [
+    "All performance tests passed - system ready for production load",
+    "Consider implementing Redis caching for improved performance",
+    "Monitor database performance under real user load"
+  ]
+}

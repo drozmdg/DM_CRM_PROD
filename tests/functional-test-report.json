@@ -1,0 +1,231 @@
+{
+  "summary": {
+    "total": 21,
+    "passed": 10,
+    "failed": 11,
+    "skipped": 0,
+    "success_rate": "47.6",
+    "duration": "75s",
+    "timestamp": "2025-07-16T23:55:22.030Z"
+  },
+  "environment": {
+    "database": "PostgreSQL 15 (Docker)",
+    "application": "Node.js + Express + React",
+    "testing": "Playwright E2E + Custom Functional Tests"
+  },
+  "test_categories": {
+    "System Health": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "Database": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "Application": {
+      "passed": 1,
+      "failed": 1,
+      "skipped": 0
+    },
+    "API": {
+      "passed": 0,
+      "failed": 4,
+      "skipped": 0
+    },
+    "E2E Testing": {
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0
+    },
+    "Security": {
+      "passed": 0,
+      "failed": 3,
+      "skipped": 0
+    },
+    "Performance": {
+      "passed": 1,
+      "failed": 1,
+      "skipped": 0
+    },
+    "Monitoring": {
+      "passed": 2,
+      "failed": 1,
+      "skipped": 0
+    }
+  },
+  "detailed_results": [
+    {
+      "id": "System Health-PostgreSQL Connection",
+      "category": "System Health",
+      "name": "PostgreSQL Connection",
+      "status": "PASSED",
+      "duration": 56,
+      "error": null
+    },
+    {
+      "id": "System Health-Data Migration Integrity",
+      "category": "System Health",
+      "name": "Data Migration Integrity",
+      "status": "PASSED",
+      "duration": 57,
+      "error": null
+    },
+    {
+      "id": "System Health-Database Schema Verification",
+      "category": "System Health",
+      "name": "Database Schema Verification",
+      "status": "PASSED",
+      "duration": 256,
+      "error": null
+    },
+    {
+      "id": "Database-Database Connection Pool",
+      "category": "Database",
+      "name": "Database Connection Pool",
+      "status": "PASSED",
+      "duration": 98,
+      "error": null
+    },
+    {
+      "id": "Database-Foreign Key Integrity",
+      "category": "Database",
+      "name": "Foreign Key Integrity",
+      "status": "PASSED",
+      "duration": 48,
+      "error": null
+    },
+    {
+      "id": "Database-Data Consistency Check",
+      "category": "Database",
+      "name": "Data Consistency Check",
+      "status": "PASSED",
+      "duration": 46,
+      "error": null
+    },
+    {
+      "id": "Application-Server Startup",
+      "category": "Application",
+      "name": "Server Startup",
+      "status": "FAILED",
+      "duration": 0,
+      "error": "Server failed to start within timeout"
+    },
+    {
+      "id": "Application-Environment Configuration",
+      "category": "Application",
+      "name": "Environment Configuration",
+      "status": "PASSED",
+      "duration": 2,
+      "error": null
+    },
+    {
+      "id": "API-Health Check Endpoint",
+      "category": "API",
+      "name": "Health Check Endpoint",
+      "status": "FAILED",
+      "duration": 0,
+      "error": "API server not responding"
+    },
+    {
+      "id": "API-Customer API",
+      "category": "API",
+      "name": "Customer API",
+      "status": "FAILED",
+      "duration": 0,
+      "error": "Command failed: curl -s http://localhost:3000/api/customers\n"
+    },
+    {
+      "id": "API-Process API",
+      "category": "API",
+      "name": "Process API",
+      "status": "FAILED",
+      "duration": 0,
+      "error": "Command failed: curl -s http://localhost:3000/api/processes\n"
+    },
+    {
+      "id": "API-Service API",
+      "category": "API",
+      "name": "Service API",
+      "status": "FAILED",
+      "duration": 0,
+      "error": "Command failed: curl -s http://localhost:3000/api/services\n"
+    },
+    {
+      "id": "E2E Testing-Playwright Test Suite",
+      "category": "E2E Testing",
+      "name": "Playwright Test Suite",
+      "status": "FAILED",
+      "duration": 0,
+      "error": "Command failed: npm run test:e2e\n"
+    },
+    {
+      "id": "Security-JWT Configuration",
+      "category": "Security",
+      "name": "JWT Configuration",
+      "status": "FAILED",
+      "duration": 0,
+      "error": "Production JWT secret not configured"
+    },
+    {
+      "id": "Security-Authentication Endpoints",
+      "category": "Security",
+      "name": "Authentication Endpoints",
+      "status": "FAILED",
+      "duration": 0,
+      "error": "Command failed: curl -s -w \"%{http_code}\" http://localhost:3000/api/customers\n"
+    },
+    {
+      "id": "Security-Database Security",
+      "category": "Security",
+      "name": "Database Security",
+      "status": "FAILED",
+      "duration": 0,
+      "error": "Database security test failed unexpectedly"
+    },
+    {
+      "id": "Performance-Database Query Performance",
+      "category": "Performance",
+      "name": "Database Query Performance",
+      "status": "PASSED",
+      "duration": 66,
+      "error": null
+    },
+    {
+      "id": "Performance-Application Response Time",
+      "category": "Performance",
+      "name": "Application Response Time",
+      "status": "FAILED",
+      "duration": 0,
+      "error": "Command failed: curl -s http://localhost:3000/api/customers\n"
+    },
+    {
+      "id": "Monitoring-Docker Container Health",
+      "category": "Monitoring",
+      "name": "Docker Container Health",
+      "status": "PASSED",
+      "duration": 30,
+      "error": null
+    },
+    {
+      "id": "Monitoring-Database Health Check Function",
+      "category": "Monitoring",
+      "name": "Database Health Check Function",
+      "status": "FAILED",
+      "duration": 0,
+      "error": "Command failed: docker exec sales-dashboard-db-dev psql -U postgres -d sales_dashboard_dev -c \"SELECT health_check();\"\nERROR:  function health_check() does not exist\nLINE 1: SELECT health_check();\n               ^\nHINT:  No function matches the given name and argument types. You might need to add explicit type casts.\n"
+    },
+    {
+      "id": "Monitoring-Backup System Verification",
+      "category": "Monitoring",
+      "name": "Backup System Verification",
+      "status": "PASSED",
+      "duration": 133,
+      "error": null
+    }
+  ],
+  "recommendations": [
+    "Address failed tests before production deployment"
+  ]
+}

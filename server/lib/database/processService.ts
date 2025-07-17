@@ -110,6 +110,7 @@ export class ProcessService {
         .insert({
           id: processId,
           name: processData.name,
+          description: processData.description || null,
           jira_ticket: processData.jiraTicket,
           status: processData.status,
           start_date: processData.startDate,
@@ -122,11 +123,16 @@ export class ProcessService {
           approved_date: processData.approvedDate,
           deployed_date: processData.deployedDate,
           functional_area: processData.functionalArea,
-          responsible_contact_id: processData.responsibleContactId,
-          progress: processData.progress,
+          contact_id: processData.responsibleContactId || null,
           output_delivery_method: processData.outputDeliveryMethod || null,
           output_delivery_details: processData.outputDeliveryDetails,
-          customer_id: customerId  // Use the customer ID string directly
+          customer_id: customerId,  // Use the customer ID string directly
+          // TPA fields
+          is_tpa_required: processData.isTpaRequired || false,
+          tpa_responsible_contact_id: processData.tpaResponsibleContactId || null,
+          tpa_data_source: processData.tpaDataSource || null,
+          tpa_start_date: processData.tpaStartDate || null,
+          tpa_end_date: processData.tpaEndDate || null
         })
         .select()
         .single();
@@ -168,6 +174,7 @@ export class ProcessService {
       // Temporarily filter out missing columns
       const filteredUpdates: any = {};
       if (updates.name !== undefined) filteredUpdates.name = updates.name;
+      if (updates.description !== undefined) filteredUpdates.description = updates.description || null;
       if (updates.jiraTicket !== undefined) filteredUpdates.jira_ticket = updates.jiraTicket;
       if (updates.status !== undefined) filteredUpdates.status = updates.status;
       if (updates.startDate !== undefined) filteredUpdates.start_date = updates.startDate;
@@ -183,8 +190,17 @@ export class ProcessService {
       if (updates.outputDeliveryMethod !== undefined) filteredUpdates.output_delivery_method = updates.outputDeliveryMethod;
       if (updates.outputDeliveryDetails !== undefined) filteredUpdates.output_delivery_details = updates.outputDeliveryDetails;
       
-      // Skip these fields that don't exist in the database yet
-      // if (updates.responsibleContactId !== undefined) filteredUpdates.responsible_contact_id = updates.responsibleContactId;
+      // Map responsibleContactId to the correct database column
+      if (updates.responsibleContactId !== undefined) filteredUpdates.contact_id = updates.responsibleContactId || null;
+      
+      // TPA fields
+      if (updates.isTpaRequired !== undefined) filteredUpdates.is_tpa_required = updates.isTpaRequired;
+      if (updates.tpaResponsibleContactId !== undefined) filteredUpdates.tpa_responsible_contact_id = updates.tpaResponsibleContactId || null;
+      if (updates.tpaDataSource !== undefined) filteredUpdates.tpa_data_source = updates.tpaDataSource || null;
+      if (updates.tpaStartDate !== undefined) filteredUpdates.tpa_start_date = updates.tpaStartDate || null;
+      if (updates.tpaEndDate !== undefined) filteredUpdates.tpa_end_date = updates.tpaEndDate || null;
+      
+      // Skip progress field as it doesn't exist in the database
       // if (updates.progress !== undefined) filteredUpdates.progress = updates.progress;
       
       // Always update the updated_at timestamp
@@ -459,6 +475,7 @@ export class ProcessService {
     return {
       id: row.id,
       name: row.name,
+      description: row.description,
       jiraTicket: row.jira_ticket,
       status: row.status,
       startDate: row.start_date,
@@ -473,11 +490,17 @@ export class ProcessService {
       supportedTeamIds: row.supported_team_ids,
       functionalArea: row.functional_area,
       documentIds: row.document_ids,
-      responsibleContactId: row.responsible_contact_id || null,
-      progress: row.progress || 0,
+      responsibleContactId: row.contact_id || null,
+      progress: 0, // Default progress since this column doesn't exist in DB
       outputDeliveryMethod: row.output_delivery_method,
       outputDeliveryDetails: row.output_delivery_details,
       customerId: row.customer_id,
+      // TPA fields
+      isTpaRequired: row.is_tpa_required || false,
+      tpaResponsibleContactId: row.tpa_responsible_contact_id || null,
+      tpaDataSource: row.tpa_data_source || null,
+      tpaStartDate: row.tpa_start_date || null,
+      tpaEndDate: row.tpa_end_date || null,
       timeline: (row.process_timeline_events || []).map((event: any) => ({
         id: event.id,
         date: event.date || event.created_at,

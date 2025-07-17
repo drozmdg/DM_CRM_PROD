@@ -10,10 +10,17 @@ export default defineConfig({
       '@shared': path.resolve(__dirname, '../shared'),
     },
   },
+  optimizeDeps: {
+    exclude: ['@shared/schema'],
+  },
   server: {
+    host: '0.0.0.0',
+    fs: {
+      allow: ['..'],
+    },
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:3000',
         changeOrigin: true,
       },
     },

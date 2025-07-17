@@ -47,12 +47,23 @@ You can still help with general CRM questions and guidance.`;
   const processCount = crmData.processes?.length || 0;
   const teamCount = crmData.teams?.length || 0;
   const serviceCount = crmData.services?.length || 0;
+  const productCount = crmData.products?.length || 0;
+  const contactCount = crmData.contacts?.length || 0;
+  const documentCount = crmData.documents?.length || 0;
 
   // Process statistics
   const processStatusCounts: Record<string, number> = {};
   const processStageDistribution: Record<string, number> = {};
   const processFunctionalAreaDistribution: Record<string, number> = {};
   const processApprovalStatusDistribution: Record<string, number> = {};
+  
+  // Pharmaceutical product statistics
+  const therapeuticAreaDistribution: Record<string, number> = {};
+  const drugClassDistribution: Record<string, number> = {};
+  const regulatoryStatusDistribution: Record<string, number> = {};
+  const responsibilityLevelDistribution: Record<string, number> = {};
+  const productActivityStatus: Record<string, number> = {};
+  const crossTeamProducts: any[] = [];
   
   // Customer phase distribution
   const phaseDistribution: Record<string, number> = {};
@@ -101,13 +112,54 @@ You can still help with general CRM questions and guidance.`;
       processApprovalStatusDistribution[approvalStatus] = (processApprovalStatusDistribution[approvalStatus] || 0) + 1;
     });
   }
+
+  // Process pharmaceutical product data
+  if (crmData.products) {
+    crmData.products.forEach((product: any) => {
+      // Therapeutic area distribution
+      const therapeuticArea = product.therapeuticArea || 'Unknown';
+      therapeuticAreaDistribution[therapeuticArea] = (therapeuticAreaDistribution[therapeuticArea] || 0) + 1;
+
+      // Drug class distribution
+      const drugClass = product.drugClass || 'Unknown';
+      drugClassDistribution[drugClass] = (drugClassDistribution[drugClass] || 0) + 1;
+
+      // Regulatory status distribution
+      const regulatoryStatus = product.regulatoryStatus || 'Unknown';
+      regulatoryStatusDistribution[regulatoryStatus] = (regulatoryStatusDistribution[regulatoryStatus] || 0) + 1;
+
+      // Product activity status
+      const isActive = product.isActive ? 'Active' : 'Inactive';
+      productActivityStatus[isActive] = (productActivityStatus[isActive] || 0) + 1;
+
+      // Team responsibility analysis
+      if (product.teams && product.teams.length > 0) {
+        // Track cross-team products (products assigned to multiple teams)
+        if (product.teams.length > 1) {
+          crossTeamProducts.push({
+            name: product.name,
+            teamCount: product.teams.length,
+            teams: product.teams.map((tp: any) => tp.team?.name || 'Unknown Team').join(', ')
+          });
+        }
+
+        // Responsibility level distribution
+        product.teams.forEach((teamProduct: any) => {
+          const responsibilityLevel = teamProduct.responsibilityLevel || 'Unknown';
+          responsibilityLevelDistribution[responsibilityLevel] = (responsibilityLevelDistribution[responsibilityLevel] || 0) + 1;
+        });
+      }
+    });
+  }
+
   // Generate customer details
   const customerDetails = crmData.customers.map((customer: any) => {
     const processes = crmData.processes?.filter((p: any) => p.customerId === customer.id) || [];
     const teams = crmData.teams?.filter((t: any) => t.customerId === customer.id) || [];
     const services = crmData.services?.filter((s: any) => s.customerId === customer.id) || [];
+    const products = crmData.products?.filter((p: any) => p.customerId === customer.id) || [];
 
-    return `${customer.name} (Phase: ${customer.phase || 'Unknown'}, Processes: ${processes.length}, Teams: ${teams.length}, Services: ${services.length})`;
+    return `${customer.name} (Phase: ${customer.phase || 'Unknown'}, Processes: ${processes.length}, Teams: ${teams.length}, Services: ${services.length}, Products: ${products.length})`;
   }).join('\n');
 
   // Generate team details
@@ -150,6 +202,29 @@ You can still help with general CRM questions and guidance.`;
     .map(([name, details]) => `${name} (${details.count} customers: ${details.customers.join(', ')})`)
     .join('\n');
 
+  // Generate pharmaceutical product details by therapeutic area
+  const productDetailsByTherapeuticArea = new Map<string, { count: number, products: string[] }>();
+  if (crmData.products) {
+    crmData.products.forEach((product: any) => {
+      const therapeuticArea = product.therapeuticArea || 'Unknown';
+      if (!productDetailsByTherapeuticArea.has(therapeuticArea)) {
+        productDetailsByTherapeuticArea.set(therapeuticArea, { count: 0, products: [] });
+      }
+      const details = productDetailsByTherapeuticArea.get(therapeuticArea)!;
+      details.count++;
+      details.products.push(`${product.name} (${product.drugClass || 'Unknown Class'}, ${product.regulatoryStatus || 'Unknown Status'})`);
+    });
+  }
+
+  const productDetailsText = Array.from(productDetailsByTherapeuticArea.entries())
+    .map(([area, details]) => `${area} (${details.count} products: ${details.products.join(', ')})`)
+    .join('\n');
+
+  // Format cross-team product assignments
+  const crossTeamProductsText = crossTeamProducts.length > 0
+    ? crossTeamProducts.map(product => `${product.name} (${product.teamCount} teams: ${product.teams})`).join('\n')
+    : "No products currently assigned to multiple teams";
+
   // Format the upcoming renewals
   const renewalsText = upcomingRenewals.length > 0
     ? upcomingRenewals.map(renewal => `${renewal.name} (${renewal.contractEnd})`).join('\n')
@@ -177,6 +252,19 @@ You have full access to the CRM data since you're running locally and the user i
 - Total Teams: ${teamCount}
 - Total Services: ${serviceCount}
 
+### Pharmaceutical Product Statistics
+- Total Products: ${productCount}
+- Product Activity Status: ${Object.entries(productActivityStatus).map(([status, count]) => `${status}: ${count}`).join(', ')}
+- Therapeutic Area Distribution: ${Object.entries(therapeuticAreaDistribution).map(([area, count]) => `${area}: ${count}`).join(', ')}
+- Drug Class Distribution: ${Object.entries(drugClassDistribution).map(([drugClass, count]) => `${drugClass}: ${count}`).join(', ')}
+- Regulatory Status Distribution: ${Object.entries(regulatoryStatusDistribution).map(([status, count]) => `${status}: ${count}`).join(', ')}
+- Team Responsibility Distribution: ${Object.entries(responsibilityLevelDistribution).map(([level, count]) => `${level}: ${count}`).join(', ')}
+- Cross-Team Products: ${crossTeamProducts.length} products managed by multiple teams
+
+### Additional Data Statistics
+- Total Contacts: ${contactCount}
+- Total Documents: ${documentCount}
+
 ## DETAILED CUSTOMER INFORMATION
 ${customerDetails}
 
@@ -185,6 +273,12 @@ ${teamDetailsText || 'No teams available'}
 
 ## SERVICE DETAILS
 ${serviceDetailsText || 'No services available'}
+
+## PHARMACEUTICAL PRODUCT PORTFOLIO
+${productDetailsText || 'No pharmaceutical products available'}
+
+## CROSS-TEAM PRODUCT MANAGEMENT
+${crossTeamProductsText}
 
 ## UPCOMING CONTRACT RENEWALS
 ${renewalsText}

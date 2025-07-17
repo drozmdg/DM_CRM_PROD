@@ -1,0 +1,266 @@
+/**
+ * usePermissions Hook
+ * Provides permission checking functionality for Data Manager assignments
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { useMockAuth } from '../contexts/MockAuthContext';
+
+interface PermissionCache {
+  [customerId: string]: {
+    isAssigned: boolean;
+    timestamp: number;
+  };
+}
+
+interface UsePermissionsReturn {
+  // Permission checking
+  canEditCustomer: (customerId: string) => Promise<boolean>;
+  canViewCustomer: (customerId: string) => boolean;
+  isAdmin: () => boolean;
+  isDataManager: () => boolean;
+  
+  // Cached permission checks (for UI components)
+  getPermissionSync: (customerId: string) => boolean | null;
+  preloadPermissions: (customerIds: string[]) => Promise<void>;
+  
+  // Assignment management
+  getAssignedCustomers: () => Promise<string[]>;
+  refreshPermissions: () => void;
+  
+  // Loading states
+  isLoadingPermissions: boolean;
+}
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+export const usePermissions = (): UsePermissionsReturn => {
+  const { user, getUserRole, isAssignedToCustomer, supabase } = useAuth();
+  const [permissionCache, setPermissionCache] = useState<PermissionCache>({});
+  const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
+
+  // Clear cache when user changes
+  useEffect(() => {
+    setPermissionCache({});
+  }, [user?.id]);
+
+  // Check if cached permission is still valid
+  const isCacheValid = useCallback((customerId: string): boolean => {
+    const cached = permissionCache[customerId];
+    if (!cached) return false;
+    
+    const now = Date.now();
+    return (now - cached.timestamp) < CACHE_DURATION;
+  }, [permissionCache]);
+
+  // Get permission from cache (synchronous)
+  const getPermissionSync = useCallback((customerId: string): boolean | null => {
+    if (!user) return false;
+    
+    // Admins can always edit
+    if (isAdmin()) return true;
+    
+    // Check cache
+    if (isCacheValid(customerId)) {
+      return permissionCache[customerId].isAssigned;
+    }
+    
+    return null; // Unknown - needs async check
+  }, [user, permissionCache, isCacheValid]);
+
+  // Check if user is admin
+  const isAdmin = useCallback((): boolean => {
+    return getUserRole() === 'admin';
+  }, [getUserRole]);
+
+  // Check if user is data manager
+  const isDataManager = useCallback((): boolean => {
+    const role = getUserRole();
+    return role === 'data_manager' || role === 'admin';
+  }, [getUserRole]);
+
+  // All users can view all customers (per requirements)
+  const canViewCustomer = useCallback((customerId: string): boolean => {
+    return !!user;
+  }, [user]);
+
+  // Check if user can edit specific customer
+  const canEditCustomer = useCallback(async (customerId: string): Promise<boolean> => {
+    if (!user) return false;
+    
+    // Admins can edit all customers
+    if (isAdmin()) return true;
+    
+    // Check cache first
+    if (isCacheValid(customerId)) {
+      return permissionCache[customerId].isAssigned;
+    }
+    
+    try {
+      const isAssigned = await isAssignedToCustomer(customerId);
+      
+      // Update cache
+      setPermissionCache(prev => ({
+        ...prev,
+        [customerId]: {
+          isAssigned,
+          timestamp: Date.now(),
+        },
+      }));
+      
+      return isAssigned;
+    } catch (error) {
+      console.error('Error checking customer assignment:', error);
+      return false;
+    }
+  }, [user, isAdmin, isAssignedToCustomer, isCacheValid, permissionCache]);
+
+  // Preload permissions for multiple customers
+  const preloadPermissions = useCallback(async (customerIds: string[]): Promise<void> => {
+    if (!user || isAdmin()) return; // Admins don't need preloading
+    
+    setIsLoadingPermissions(true);
+    
+    try {
+      // Filter out already cached and valid permissions
+      const uncachedIds = customerIds.filter(id => !isCacheValid(id));
+      
+      if (uncachedIds.length === 0) {
+        setIsLoadingPermissions(false);
+        return;
+      }
+      
+      // Batch fetch assignments from database
+      const { data: assignments, error } = await supabase
+        .from('customer_data_managers')
+        .select('customer_id')
+        .eq('user_id', user.id)
+        .in('customer_id', uncachedIds);
+      
+      if (error) throw error;
+      
+      const assignedIds = new Set(assignments?.map(a => a.customer_id) || []);
+      const timestamp = Date.now();
+      
+      // Update cache for all checked customers
+      setPermissionCache(prev => {
+        const updated = { ...prev };
+        uncachedIds.forEach(customerId => {
+          updated[customerId] = {
+            isAssigned: assignedIds.has(customerId),
+            timestamp,
+          };
+        });
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error preloading permissions:', error);
+    } finally {
+      setIsLoadingPermissions(false);
+    }
+  }, [user, isAdmin, supabase, isCacheValid]);
+
+  // Get all customers assigned to current user
+  const getAssignedCustomers = useCallback(async (): Promise<string[]> => {
+    if (!user) return [];
+    
+    // Admins are considered assigned to all customers
+    if (isAdmin()) {
+      try {
+        const { data: customers, error } = await supabase
+          .from('customers')
+          .select('id');
+        
+        if (error) throw error;
+        return customers?.map(c => c.id) || [];
+      } catch (error) {
+        console.error('Error fetching all customers for admin:', error);
+        return [];
+      }
+    }
+    
+    try {
+      const { data: assignments, error } = await supabase
+        .from('customer_data_managers')
+        .select('customer_id')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      return assignments?.map(a => a.customer_id) || [];
+    } catch (error) {
+      console.error('Error fetching assigned customers:', error);
+      return [];
+    }
+  }, [user, isAdmin, supabase]);
+
+  // Clear permission cache
+  const refreshPermissions = useCallback(() => {
+    setPermissionCache({});
+  }, []);
+
+  return {
+    canEditCustomer,
+    canViewCustomer,
+    isAdmin,
+    isDataManager,
+    getPermissionSync,
+    preloadPermissions,
+    getAssignedCustomers,
+    refreshPermissions,
+    isLoadingPermissions,
+  };
+};
+
+// Higher-order component for permission-based rendering
+interface WithPermissionsProps {
+  customerId?: string;
+  requireEdit?: boolean;
+  fallback?: React.ReactNode;
+  children: React.ReactNode;
+}
+
+export const WithPermissions: React.FC<WithPermissionsProps> = ({
+  customerId,
+  requireEdit = false,
+  fallback = null,
+  children,
+}) => {
+  const { canViewCustomer, getPermissionSync, canEditCustomer } = usePermissions();
+  const [canEdit, setCanEdit] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    if (!customerId || !requireEdit) return;
+    
+    // Try sync check first
+    const syncResult = getPermissionSync(customerId);
+    if (syncResult !== null) {
+      setCanEdit(syncResult);
+      return;
+    }
+    
+    // Fall back to async check
+    canEditCustomer(customerId).then(setCanEdit);
+  }, [customerId, requireEdit, getPermissionSync, canEditCustomer]);
+  
+  // For view permission (always allowed)
+  if (!requireEdit) {
+    return customerId && canViewCustomer(customerId) ? children : fallback;
+  }
+  
+  // For edit permission
+  if (!customerId) return fallback;
+  
+  // Still checking permission
+  if (canEdit === null) {
+    return (
+      <div className="flex items-center space-x-2">
+        <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+        <span className="text-sm text-gray-500">Checking permissions...</span>
+      </div>
+    );
+  }
+  
+  return canEdit ? children : fallback;
+};
+
+export default usePermissions;
